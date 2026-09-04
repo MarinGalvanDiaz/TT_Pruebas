@@ -11,16 +11,28 @@ export interface FaqItem {
 
 export interface TestimonialItem {
   id: string;
-  type: 'Experiencia' | 'Novedad';
+  type?: 'Experiencia' | 'Novedad';
   content: string;
+  author: string;
+  role: string;
+  iconName?: string;
+  avatarColor?: string;
+}
+
+export interface InsideFeatureItem {
+  id: string;
+  title: string;
+  subtitle: string;
   iconName: string;
-  author?: string;
+  screenTarget?: string;
+  bgColor?: string;
 }
 
 export interface PartnerItem {
   id: string;
   name: string;
   logoText: string;
+  description?: string;
   websiteUrl?: string;
 }
 
@@ -40,3 +52,4 @@ export interface MoodLog {
   note?: string;
   createdAt: string;
 }
+

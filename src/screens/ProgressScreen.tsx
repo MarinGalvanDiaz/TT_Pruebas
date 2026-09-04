@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { TopAppBar } from '../components/layout/TopAppBar';
 import { WebHeader } from '../components/layout/WebHeader';
@@ -17,11 +18,11 @@ import { Typography } from '../theme/typography';
 import { BorderRadius, Shadows, Spacing } from '../theme/spacing';
 
 const MOODS = [
-  { level: 1, label: 'Abrumado', icon: 'sentiment-very-dissatisfied', color: '#ba1a1a' },
-  { level: 2, label: 'Ansioso', icon: 'sentiment-dissatisfied', color: '#e65100' },
-  { level: 3, label: 'Neutro', icon: 'sentiment-neutral', color: '#fbc02d' },
-  { level: 4, label: 'En calma', icon: 'sentiment-satisfied', color: '#4a654e' },
-  { level: 5, label: 'Radiante', icon: 'sentiment-very-satisfied', color: '#326578' },
+  { level: 1, label: 'Abrumado', icon: 'sentiment-very-dissatisfied', color: '#ba1a1a', hint: 'Recuerda que no estás solo. Tómate una pausa y respira.' },
+  { level: 2, label: 'Ansioso', icon: 'sentiment-dissatisfied', color: '#e65100', hint: 'Un paso a la vez. Intenta un ejercicio de respiración guiada.' },
+  { level: 3, label: 'Neutro', icon: 'sentiment-neutral', color: '#fbc02d', hint: 'Está bien tener días neutros. Escucha lo que tu cuerpo necesita.' },
+  { level: 4, label: 'En calma', icon: 'sentiment-satisfied', color: '#4a654e', hint: '¡Qué buena energía! Disfruta este momento de tranquilidad.' },
+  { level: 5, label: 'Radiante', icon: 'sentiment-very-satisfied', color: '#326578', hint: '¡Excelente! Guarda este bienestar y compártelo con quienes amas.' },
 ];
 
 const WEEK_HISTORY = [
@@ -42,6 +43,8 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({ navigation }) =>
   const [selectedMood, setSelectedMood] = useState<number | null>(4);
   const [savedToday, setSavedToday] = useState(false);
   const isWeb = Platform.OS === 'web';
+
+  const currentMoodObj = MOODS.find((m) => m.level === selectedMood);
 
   const handleSaveMood = () => {
     setSavedToday(true);
@@ -67,22 +70,26 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({ navigation }) =>
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            {/* Streak Banner */}
+            {/* Streak Banner con Mascota Skater */}
             <View style={[styles.streakCard, Shadows.soft]}>
               <View style={styles.streakIconWrapper}>
-                <MaterialIcons name="local-fire-department" size={32} color="#f57c00" />
+                <MaterialIcons name="local-fire-department" size={28} color="#f57c00" />
               </View>
               <View style={styles.streakInfo}>
                 <Text style={styles.streakTitle}>Racha de 5 días</Text>
                 <Text style={styles.streakSubtitle}>Cuidando de tu bienestar conscientemente.</Text>
               </View>
+              <Image
+                source={require('../../assets/images/mascot_skater.png')}
+                style={styles.streakMascot}
+              />
             </View>
 
             {/* Daily Mood Check-In */}
             <View style={[styles.card, Shadows.soft]}>
               <Text style={styles.cardTitle}>¿Cómo te sientes hoy?</Text>
               <Text style={styles.cardSubtitle}>
-                Registrar tu emoción te ayuda a identificar patrones.
+                Registrar tu emoción te ayuda a identificar patrones y cuidarte.
               </Text>
 
               <View style={styles.moodGrid}>
@@ -122,6 +129,19 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({ navigation }) =>
                   );
                 })}
               </View>
+
+              {/* Mensaje de apoyo de la mascota */}
+              {currentMoodObj && (
+                <View style={styles.moodFeedbackBox}>
+                  <Image
+                    source={require('../../assets/images/mascots_teal_duo_crop.png')}
+                    style={styles.moodFeedbackMascot}
+                  />
+                  <Text style={styles.moodFeedbackText}>
+                    {currentMoodObj.hint}
+                  </Text>
+                </View>
+              )}
 
               <TouchableOpacity
                 style={[
@@ -163,21 +183,29 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({ navigation }) =>
               </View>
             </View>
 
-            {/* Suggested Activity */}
+            {/* Suggested Activity con Mascota Verde */}
             <View style={[styles.card, styles.highlightCard, Shadows.soft]}>
-              <View style={styles.cardHeaderRow}>
-                <MaterialIcons name="air" size={24} color={Colors.primary} />
-                <Text style={styles.highlightTitle}>Recomendado para ti</Text>
+              <View style={styles.highlightContentRow}>
+                <View style={styles.highlightLeft}>
+                  <View style={styles.cardHeaderRow}>
+                    <MaterialIcons name="air" size={24} color={Colors.primary} />
+                    <Text style={styles.highlightTitle}>Recomendado para ti</Text>
+                  </View>
+                  <Text style={styles.highlightDesc}>
+                    Completa una sesión de 3 minutos de respiración guiada 4-4-4 para mantener tu calma.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.actionPill}
+                    onPress={() => navigation.navigate('Breathing')}
+                  >
+                    <Text style={styles.actionPillText}>Ir a Respirar →</Text>
+                  </TouchableOpacity>
+                </View>
+                <Image
+                  source={require('../../assets/images/mascots_green_duo_crop.png')}
+                  style={styles.highlightMascot}
+                />
               </View>
-              <Text style={styles.highlightDesc}>
-                Completa una sesión de 3 minutos de respiración guiada para mantener tu calma.
-              </Text>
-              <TouchableOpacity
-                style={styles.actionPill}
-                onPress={() => navigation.navigate('Breathing')}
-              >
-                <Text style={styles.actionPillText}>Ir a Respirar →</Text>
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -191,26 +219,31 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({ navigation }) =>
 const styles = StyleSheet.create({
   outerCanvas: {
     flex: 1,
-    backgroundColor: Colors.surfaceDim,
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   container: {
     flex: 1,
     width: '100%',
-    maxWidth: Spacing.maxWidth,
+    maxWidth: 720,
     backgroundColor: Colors.surface,
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   scrollContent: {
     paddingBottom: 24,
   },
   content: {
     paddingHorizontal: Spacing.safeMargin,
-    paddingTop: 20,
+    paddingTop: 24,
     gap: 16,
+    maxWidth: 600,
+    alignSelf: 'center',
+    width: '100%',
   },
   streakCard: {
     backgroundColor: Colors.secondaryContainer,
@@ -221,9 +254,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   streakIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -231,17 +264,24 @@ const styles = StyleSheet.create({
   streakInfo: {
     flex: 1,
   },
+  streakMascot: {
+    width: 48,
+    height: 52,
+    resizeMode: 'contain',
+  },
   streakTitle: {
     ...Typography.headlineMd,
     color: Colors.onSecondaryContainer,
+    fontSize: 16,
   },
   streakSubtitle: {
     ...Typography.bodyMd,
     color: Colors.onSecondaryContainer,
     opacity: 0.9,
+    fontSize: 12,
   },
   card: {
-    backgroundColor: Colors.surfaceContainerLow,
+    backgroundColor: Colors.surfaceContainerLowest,
     borderRadius: BorderRadius.xl,
     padding: 20,
     borderWidth: 1,
@@ -260,7 +300,7 @@ const styles = StyleSheet.create({
   moodGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   moodItem: {
     alignItems: 'center',
@@ -278,6 +318,27 @@ const styles = StyleSheet.create({
     ...Typography.labelSm,
     fontSize: 10,
     color: Colors.onSurfaceVariant,
+  },
+  moodFeedbackBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surfaceContainerHighest,
+    padding: 12,
+    borderRadius: BorderRadius.md,
+    marginBottom: 16,
+  },
+  moodFeedbackMascot: {
+    width: 42,
+    height: 42,
+    resizeMode: 'contain',
+  },
+  moodFeedbackText: {
+    ...Typography.bodyMd,
+    color: Colors.onSurface,
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   saveMoodBtn: {
     backgroundColor: Colors.primary,
@@ -319,6 +380,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryContainer,
     borderColor: Colors.primary,
   },
+  highlightContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  highlightLeft: {
+    flex: 1,
+  },
+  highlightMascot: {
+    width: 72,
+    height: 72,
+    resizeMode: 'contain',
+  },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -333,6 +408,7 @@ const styles = StyleSheet.create({
     ...Typography.bodyMd,
     color: Colors.onPrimaryContainer,
     marginBottom: 12,
+    fontSize: 13,
   },
   actionPill: {
     alignSelf: 'flex-start',

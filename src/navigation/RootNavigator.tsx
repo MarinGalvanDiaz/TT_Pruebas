@@ -7,6 +7,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
+import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { ResetPasswordScreen } from '../screens/ResetPasswordScreen';
 import { BreathingScreen } from '../screens/BreathingScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { Colors } from '../theme/colors';
@@ -103,12 +105,15 @@ export const RootNavigator = () => {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         <Stack.Screen name="Breathing" component={BreathingScreen} />
         <Stack.Screen name="Progress" component={ProgressScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
 
 const styles = StyleSheet.create({
   tabBar: {

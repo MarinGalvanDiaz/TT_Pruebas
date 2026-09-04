@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Platform, Image } from 'react-native';
 import { TopAppBar } from '../components/layout/TopAppBar';
 import { WebHeader } from '../components/layout/WebHeader';
 import { Footer } from '../components/layout/Footer';
@@ -82,6 +82,26 @@ export const BreathingScreen: React.FC<BreathingScreenProps> = ({ navigation }) 
             </Animated.View>
           </View>
 
+          {/* Compañeros de Respiración Mascotas */}
+          <View style={[styles.mascotCompanionCard, Shadows.soft]}>
+            <Image
+              source={require('../../assets/images/mascots_green_duo_crop.png')}
+              style={styles.mascotGuideImage}
+            />
+            <View style={styles.mascotGuideTextWrap}>
+              <Text style={styles.mascotGuideName}>Kiko & Zen te acompañan</Text>
+              <Text style={styles.mascotGuideHint}>
+                {phase === 'Inhala'
+                  ? 'Inhala profundo llenando tus pulmones de aire fresco...'
+                  : phase === 'Mantén'
+                  ? 'Sostén la respiración y encuentra tu calma...'
+                  : phase === 'Exhala'
+                  ? 'Suelta todo el aire despacio y relaja tus hombros...'
+                  : 'Presiona "Iniciar respiración" cuando estés listo.'}
+              </Text>
+            </View>
+          </View>
+
           <TouchableOpacity
             style={[styles.actionButton, Shadows.button]}
             onPress={() => setIsActive(!isActive)}
@@ -107,45 +127,47 @@ export const BreathingScreen: React.FC<BreathingScreenProps> = ({ navigation }) 
 const styles = StyleSheet.create({
   outerCanvas: {
     flex: 1,
-    backgroundColor: Colors.surfaceDim,
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   container: {
     flex: 1,
     width: '100%',
-    maxWidth: Spacing.maxWidth,
+    maxWidth: 720,
     backgroundColor: Colors.surface,
     justifyContent: 'space-between',
   },
   content: {
     paddingHorizontal: Spacing.safeMargin,
     alignItems: 'center',
-    paddingTop: 32,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   title: {
     ...Typography.headlineLg,
     color: Colors.onSurface,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
     ...Typography.bodyMd,
     color: Colors.onSurfaceVariant,
     textAlign: 'center',
-    marginBottom: 36,
+    marginBottom: 16,
   },
   circleContainer: {
-    width: 240,
-    height: 240,
+    width: 200,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 20,
+    marginVertical: 12,
   },
   breathingCircle: {
-    width: 170,
-    height: 170,
-    borderRadius: 85,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     backgroundColor: Colors.secondaryContainer,
     borderWidth: 3,
     borderColor: Colors.secondary,
@@ -156,6 +178,40 @@ const styles = StyleSheet.create({
     ...Typography.headlineMd,
     color: Colors.onSecondaryContainer,
     fontWeight: '700',
+    fontSize: 20,
+  },
+  mascotCompanionCard: {
+    backgroundColor: Colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.lg,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    width: '100%',
+    maxWidth: 380,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: Colors.surfaceVariant,
+  },
+  mascotGuideImage: {
+    width: 64,
+    height: 64,
+    resizeMode: 'contain',
+  },
+  mascotGuideTextWrap: {
+    flex: 1,
+  },
+  mascotGuideName: {
+    ...Typography.headlineMd,
+    color: Colors.primary,
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  mascotGuideHint: {
+    ...Typography.bodyMd,
+    color: Colors.onSurfaceVariant,
+    fontSize: 12,
+    lineHeight: 16,
   },
   actionButton: {
     flexDirection: 'row',
@@ -165,7 +221,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: BorderRadius.xl,
-    marginTop: 32,
+    marginTop: 20,
   },
   actionButtonText: {
     ...Typography.headlineMd,

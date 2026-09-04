@@ -29,6 +29,10 @@
       "shortName": "Libérate",
       "themeColor": "#635979",
       "backgroundColor": "#fbf9f5"
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser"
+    ]
   }
 }

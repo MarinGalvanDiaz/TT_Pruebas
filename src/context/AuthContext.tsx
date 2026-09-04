@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserProfile, UserRole, LoginRequest, RegisterRequest } from '../types/auth.types';
+import {
+  UserProfile,
+  UserRole,
+  LoginRequest,
+  RegisterRequest,
+  GoogleLoginRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  ApiResponse,
+} from '../types/auth.types';
 import { AuthService } from '../services/auth.service';
+import { SecureTokenStorage } from '../services/secureStore';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -12,7 +22,11 @@ interface AuthContextType {
   error: string | null;
   login: (req: LoginRequest) => Promise<boolean>;
   register: (req: RegisterRequest) => Promise<boolean>;
+  loginWithGoogle: (req: GoogleLoginRequest) => Promise<boolean>;
+  forgotPassword: (req: ForgotPasswordRequest) => Promise<ApiResponse>;
+  resetPassword: (req: ResetPasswordRequest) => Promise<ApiResponse>;
   logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -27,19 +41,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearError = () => setError(null);
 
+  useEffect(() => {
+    // Check existing stored session on startup
+    const checkSession = async () => {
+      try {
+        const storedRefreshToken = await SecureTokenStorage.getRefreshToken();
+        if (storedRefreshToken) {
+          const profile = await AuthService.getCurrentUser();
+          if (profile) {
+            setUser(profile);
+            if (profile.role) {
+              setSelectedRole(profile.role);
+            }
+          }
+        }
+      } catch (e) {
+        console.log('[AuthContext] No active session found');
+      }
+    };
+    checkSession();
+  }, []);
+
   const login = async (req: LoginRequest): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await AuthService.login({ ...req, role: req.role || selectedRole });
+      const activeToken = response.accessToken || response.token || '';
       setUser(response.user);
-      setToken(response.token);
+      setToken(activeToken);
       if (response.user.role) {
         setSelectedRole(response.user.role);
       }
       return true;
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Error al iniciar sesión. Inténtalo nuevamente.');
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Credenciales inválidas. Por favor verifica tu información.';
+      setError(message);
       return false;
     } finally {
       setIsLoading(false);
@@ -51,12 +91,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const response = await AuthService.register({ ...req, role: selectedRole });
+      const activeToken = response.accessToken || response.token || '';
       setUser(response.user);
-      setToken(response.token);
+      setToken(activeToken);
       return true;
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Error al registrarse. Inténtalo nuevamente.');
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Error al registrarse. Por favor verifica que los datos sean correctos.';
+      setError(message);
       return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async (req: GoogleLoginRequest): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await AuthService.loginWithGoogle({ ...req, role: req.role || selectedRole });
+      const activeToken = response.accessToken || response.token || '';
+      setUser(response.user);
+      setToken(activeToken);
+      if (response.user.role) {
+        setSelectedRole(response.user.role);
+      }
+      return true;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Error al autenticar con Google. Inténtalo nuevamente.';
+      setError(message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forgotPassword = async (req: ForgotPasswordRequest): Promise<ApiResponse> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await AuthService.forgotPassword(req);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Error al procesar la solicitud.';
+      setError(message);
+      return { success: false, message, code: 'ERROR' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (req: ResetPasswordRequest): Promise<ApiResponse> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await AuthService.resetPassword(req);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Error al restablecer contraseña.';
+      setError(message);
+      return { success: false, message, code: 'ERROR' };
     } finally {
       setIsLoading(false);
     }
@@ -66,6 +163,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       await AuthService.logout();
+      setUser(null);
+      setToken(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logoutAll = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      await AuthService.logoutAll();
       setUser(null);
       setToken(null);
     } finally {
@@ -85,7 +193,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error,
         login,
         register,
+        loginWithGoogle,
+        forgotPassword,
+        resetPassword,
         logout,
+        logoutAll,
         clearError,
       }}
     >
@@ -101,3 +213,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Image,
+  useWindowDimensions,
 } from 'react-native';
 import { TopAppBar } from '../components/layout/TopAppBar';
 import { WebHeader } from '../components/layout/WebHeader';
@@ -20,17 +22,23 @@ import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { BorderRadius, Shadows, Spacing } from '../theme/spacing';
 
+import { GoogleSignInButton } from '../components/common/GoogleSignInButton';
+
 interface LoginScreenProps {
   navigation: any;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
-  const { login, selectedRole, setSelectedRole, isLoading, error, clearError } = useAuth();
+  const { login, loginWithGoogle, selectedRole, setSelectedRole, isLoading, error, clearError } =
+    useAuth();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  const isWeb = Platform.OS === 'web';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<{ email?: string; password?: string }>({});
-  const isWeb = Platform.OS === 'web';
 
   const validate = (): boolean => {
     const errors: { email?: string; password?: string } = {};
@@ -61,6 +69,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    clearError();
+    setIsGoogleLoading(true);
+    try {
+      // In production mobile with Expo AuthSession / Google SDK, idToken is retrieved via OpenID Connect
+      // For development and testing with Spring Boot, we pass the standard token payload
+      const mockGoogleIdToken = `mock-google-id-token-${Date.now()}`;
+      const success = await loginWithGoogle({
+        idToken: mockGoogleIdToken,
+        role: selectedRole,
+      });
+      if (success) {
+        navigation.navigate('Home');
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   const fillQuickDemo = (role: 'ADOLESCENTES' | 'FAMILIAS' | 'PSICOLOGOS') => {
     setSelectedRole(role);
     if (role === 'ADOLESCENTES') {
@@ -77,8 +104,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.outerCanvas}>
-      <View style={styles.container}>
-        <TopAppBar title="Libérate" />
+      <View style={[styles.container, isDesktop && styles.desktopContainer]}>
+        {/* Mobile top bar (mobile native / narrow screen) */}
+        {!isDesktop && <TopAppBar title="Libérate" />}
+
+        {/* Web Header for desktop / web browser */}
         {isWeb && (
           <WebHeader
             activeScreen="Login"
@@ -88,10 +118,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isDesktop && styles.desktopScrollContent,
+          ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.mainContent}>
+          <View style={[styles.mainContent, isDesktop && styles.desktopMainContent]}>
+            {/* Mascot Welcome Header */}
+            <View style={[styles.mascotWelcomeHeader, Shadows.soft]}>
+              <Image
+                source={require('../../assets/images/mascots_teal_duo_crop.png')}
+                style={styles.mascotWelcomeImage}
+              />
+              <View style={styles.mascotWelcomeTextWrap}>
+                <Text style={styles.mascotWelcomeTitle}>¡Bienvenido de vuelta!</Text>
+                <Text style={styles.mascotWelcomeSubtitle}>
+                  Selecciona tu rol y accede a tus herramientas personalizadas.
+                </Text>
+              </View>
+            </View>
+
             {/* Segmented Control (Registro / Ingreso) */}
             <SegmentedControl
               selected="ingreso"
@@ -165,25 +212,37 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               />
 
               <TouchableOpacity
-                onPress={() =>
-                  Alert.alert('Recuperar contraseña', 'Te enviaremos un enlace de recuperación.')
-                }
+                onPress={() => navigation.navigate('ForgotPassword')}
                 style={styles.forgotBtn}
               >
                 <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
 
               <GradientButton
-                title="Ingresar"
+                title="Iniciar sesión"
                 onPress={handleLogin}
-                isLoading={isLoading}
+                isLoading={isLoading && !isGoogleLoading}
                 style={styles.submitButton}
+              />
+
+              {/* Social Login Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>o bien</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Google Sign In */}
+              <GoogleSignInButton
+                title="Continuar con Google"
+                onPress={handleGoogleSignIn}
+                isLoading={isGoogleLoading}
               />
 
               <View style={styles.registerPrompt}>
                 <Text style={styles.promptText}>¿No tienes una cuenta? </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                  <Text style={styles.registerLink}>Regístrate aquí</Text>
+                  <Text style={styles.registerLink}>Crear cuenta</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -196,54 +255,102 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   );
 };
 
+
 const styles = StyleSheet.create({
   outerCanvas: {
     flex: 1,
-    backgroundColor: Colors.surfaceDim,
+    backgroundColor: Colors.background,
     alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
   },
   container: {
     flex: 1,
     width: '100%',
-    maxWidth: Spacing.maxWidth,
     backgroundColor: Colors.surface,
-    position: 'relative',
+  },
+  desktopContainer: {
+    maxWidth: '100%',
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   scrollContent: {
     paddingBottom: 24,
+    minHeight: '100%',
+    justifyContent: 'space-between',
+  },
+  desktopScrollContent: {
+    paddingBottom: 0,
   },
   mainContent: {
     paddingHorizontal: Spacing.safeMargin,
-    paddingTop: 20,
+    paddingTop: 24,
     alignItems: 'center',
+    maxWidth: 520,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  desktopMainContent: {
+    paddingTop: 36,
+    paddingBottom: 36,
+  },
+  mascotWelcomeHeader: {
+    width: '100%',
+    backgroundColor: Colors.tertiaryContainer,
+    borderRadius: BorderRadius.xl,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 20,
+  },
+  mascotWelcomeImage: {
+    width: 64,
+    height: 64,
+    resizeMode: 'contain',
+  },
+  mascotWelcomeTextWrap: {
+    flex: 1,
+  },
+  mascotWelcomeTitle: {
+    ...Typography.headlineMd,
+    color: Colors.onTertiaryContainer,
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  mascotWelcomeSubtitle: {
+    ...Typography.bodyMd,
+    color: Colors.onTertiaryContainer,
+    fontSize: 13,
+    opacity: 0.9,
+    lineHeight: 18,
   },
   quickAccessBar: {
     width: '100%',
     backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: BorderRadius.md,
-    padding: 10,
-    marginBottom: 16,
+    borderRadius: BorderRadius.lg,
+    padding: 12,
+    marginBottom: 18,
     borderWidth: 1,
     borderColor: Colors.surfaceVariant,
   },
   quickAccessTitle: {
     ...Typography.labelSm,
     color: Colors.onSurfaceVariant,
-    marginBottom: 6,
+    marginBottom: 8,
     fontWeight: '600',
   },
   quickPillsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   quickPill: {
     backgroundColor: Colors.primaryContainer,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
     borderRadius: BorderRadius.full,
   },
   quickPillText: {
@@ -253,7 +360,7 @@ const styles = StyleSheet.create({
   },
   formCard: {
     width: '100%',
-    backgroundColor: Colors.surfaceContainerLow,
+    backgroundColor: Colors.surfaceContainerLowest,
     borderRadius: BorderRadius.xl,
     padding: 24,
     borderWidth: 1,
@@ -283,6 +390,22 @@ const styles = StyleSheet.create({
   submitButton: {
     width: '100%',
   },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+    width: '100%',
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.surfaceVariant,
+  },
+  dividerText: {
+    ...Typography.labelSm,
+    color: Colors.onSurfaceVariant,
+    paddingHorizontal: 12,
+  },
   registerPrompt: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -300,3 +423,5 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 });
+
+

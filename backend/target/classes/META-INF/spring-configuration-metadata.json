@@ -1,0 +1,77 @@
+{
+  "groups": [
+    {
+      "name": "app.cors",
+      "type": "com.liberate.auth.config.CorsProperties",
+      "sourceType": "com.liberate.auth.config.CorsProperties"
+    },
+    {
+      "name": "app.google",
+      "type": "com.liberate.auth.config.GoogleAuthProperties",
+      "sourceType": "com.liberate.auth.config.GoogleAuthProperties"
+    },
+    {
+      "name": "app.jwt",
+      "type": "com.liberate.auth.config.JwtProperties",
+      "sourceType": "com.liberate.auth.config.JwtProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "app.cors.allow-credentials",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.liberate.auth.config.CorsProperties"
+    },
+    {
+      "name": "app.cors.allowed-headers",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.liberate.auth.config.CorsProperties"
+    },
+    {
+      "name": "app.cors.allowed-methods",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.liberate.auth.config.CorsProperties"
+    },
+    {
+      "name": "app.cors.allowed-origins",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.liberate.auth.config.CorsProperties"
+    },
+    {
+      "name": "app.google.additional-client-ids",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.liberate.auth.config.GoogleAuthProperties"
+    },
+    {
+      "name": "app.google.all-allowed-client-ids",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "com.liberate.auth.config.GoogleAuthProperties"
+    },
+    {
+      "name": "app.google.client-id",
+      "type": "java.lang.String",
+      "sourceType": "com.liberate.auth.config.GoogleAuthProperties"
+    },
+    {
+      "name": "app.jwt.access-token-expiration-ms",
+      "type": "java.lang.Long",
+      "sourceType": "com.liberate.auth.config.JwtProperties"
+    },
+    {
+      "name": "app.jwt.issuer",
+      "type": "java.lang.String",
+      "sourceType": "com.liberate.auth.config.JwtProperties"
+    },
+    {
+      "name": "app.jwt.refresh-token-expiration-ms",
+      "type": "java.lang.Long",
+      "sourceType": "com.liberate.auth.config.JwtProperties"
+    },
+    {
+      "name": "app.jwt.secret",
+      "type": "java.lang.String",
+      "sourceType": "com.liberate.auth.config.JwtProperties"
+    }
+  ],
+  "hints": []
+}

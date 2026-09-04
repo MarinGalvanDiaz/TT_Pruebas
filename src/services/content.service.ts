@@ -1,23 +1,42 @@
 import { apiClient } from '../api/client';
 import { Endpoints } from '../api/endpoints';
-import { FaqItem, PartnerItem, TestimonialItem, ExerciseItem } from '../types/content.types';
+import {
+  FaqItem,
+  PartnerItem,
+  TestimonialItem,
+  ExerciseItem,
+  InsideFeatureItem,
+} from '../types/content.types';
 
-// Mock data directly from the Stitch screens design
+// Mock data directly aligned with the landing page design document
 const MOCK_FAQS: FaqItem[] = [
   {
     id: 'faq-1',
-    question: '¿Es completamente anónimo?',
-    answer: 'Sí, tu privacidad es nuestra prioridad. No compartimos tus datos personales ni tus registros emocionales con terceros.',
+    question: '¿Qué es Libérate y en qué consiste el proyecto?',
+    answer:
+      'Libérate es una iniciativa de investigación y desarrollo tecnológico enfocada en la prevención y el acompañamiento emocional de adolescentes y sus familias, ofreciendo herramientas accesibles y contenidos especializados.',
+    category: 'General',
   },
   {
     id: 'faq-2',
-    question: '¿Puedo usarlo sin conexión?',
-    answer: 'Algunas herramientas básicas y ejercicios de respiración están disponibles offline, pero se recomienda conexión a internet para la experiencia completa y sincronización.',
+    question: '¿Es completamente anónimo y confidencial?',
+    answer:
+      'Sí, la privacidad es fundamental. Los registros personales y actividades emocionales se gestionan bajo estrictos protocolos de protección de datos.',
+    category: 'Privacidad',
   },
   {
     id: 'faq-3',
-    question: '¿Cómo me ayuda con mi bienestar?',
-    answer: 'Libérate ofrece ejercicios guiados de respiración táctil, registro de estado de ánimo, y contacto con profesionales de la salud mental.',
+    question: '¿Quiénes respaldan la investigación?',
+    answer:
+      'Cuenta con la colaboración y respaldo de investigadoras e investigadores de la UNAM, el IPN y el LABPSIIT, gracias al Programa UNAM-PAPIME (PE309026).',
+    category: 'Institucional',
+  },
+  {
+    id: 'faq-4',
+    question: '¿Cómo puedo acceder desde mi celular?',
+    answer:
+      'Puedes usar esta versión web responsiva directamente en cualquier navegador o descargar la app disponible para iOS en App Store y para Android en Google Play.',
+    category: 'Uso',
   },
 ];
 
@@ -25,36 +44,83 @@ const MOCK_TESTIMONIALS: TestimonialItem[] = [
   {
     id: 'test-1',
     type: 'Experiencia',
-    content: '"Las olas me ayudan a calmarme cuando siento que todo es demasiado."',
-    iconName: 'format-quote',
-    author: 'Usuario anónimo',
+    content:
+      'Testimonio de una familia sobre su experiencia con Libérate: Nos ha brindado herramientas claras para comunicarnos mejor y comprender los momentos difíciles sin juzgarnos.',
+    author: 'Familia Martínez',
+    role: 'Familia participante',
+    iconName: 'people',
+    avatarColor: '#b4d2b6',
   },
   {
     id: 'test-2',
-    type: 'Novedad',
-    content: "Nuevos ejercicios de respiración disponibles en la sección 'Aire'.",
-    iconName: 'new-releases',
-    author: 'Equipo Libérate',
+    type: 'Experiencia',
+    content:
+      'Testimonio de un profesional sobre su experiencia con Libérate: Es un recurso clínico y pedagógico invaluable para el acompañamiento socioemocional y la psicoeducación.',
+    author: 'Dra. Gabriela Soto',
+    role: 'Profesional en Psicología Clínica',
+    iconName: 'psychology',
+    avatarColor: '#b5e7fe',
   },
   {
     id: 'test-3',
     type: 'Experiencia',
-    content: '"Tener un espacio seguro y sin juicios ha cambiado mi rutina diaria."',
-    iconName: 'format-quote',
-    author: 'Comunidad',
+    content:
+      'Encontrar ejercicios de respiración guiada y lecturas pensadas para lo que sentimos me ayudó a recuperar la calma en momentos de mucha presión escolar.',
+    author: 'Mateo R.',
+    role: 'Adolescente (16 años)',
+    iconName: 'face',
+    avatarColor: '#d1c4e9',
   },
 ];
 
 const MOCK_PARTNERS: PartnerItem[] = [
   {
-    id: 'p-1',
-    name: 'Institución de Salud Mental 1',
-    logoText: 'Alianza por la Salud Mental',
+    id: 'p-unam',
+    name: 'Universidad Nacional Autónoma de México',
+    logoText: 'UNAM',
+    description: 'Facultad de Psicología y Dirección General de Asuntos del Personal Académico (DGAPA)',
+    websiteUrl: 'https://www.unam.mx',
   },
   {
-    id: 'p-2',
-    name: 'Institución Educativa y Juvenil 2',
-    logoText: 'Fundación Bienestar Joven',
+    id: 'p-ipn',
+    name: 'Instituto Politécnico Nacional',
+    logoText: 'IPN',
+    description: 'Investigación y Colaboración Tecnológica Interinstitucional',
+    websiteUrl: 'https://www.ipn.mx',
+  },
+  {
+    id: 'p-labpsiit',
+    name: 'Laboratorio de Psicología e Innovación Tecnológica',
+    logoText: 'LABPSIIT',
+    description: 'Desarrollo de Soluciones Digitales en Salud Mental',
+    websiteUrl: 'https://labpsiit.unam.mx',
+  },
+];
+
+const MOCK_INSIDE_FEATURES: InsideFeatureItem[] = [
+  {
+    id: 'feat-lecturas',
+    title: 'Lecturas',
+    subtitle: 'Contenidos por rol',
+    iconName: 'menu-book',
+    screenTarget: 'Register',
+    bgColor: '#d1c4e9',
+  },
+  {
+    id: 'feat-ejercicios',
+    title: 'Ejercicios',
+    subtitle: 'Actividades prácticas',
+    iconName: 'self-improvement',
+    screenTarget: 'Breathing',
+    bgColor: '#b5e7fe',
+  },
+  {
+    id: 'feat-seguimiento',
+    title: 'Seguimiento',
+    subtitle: 'Progreso personal',
+    iconName: 'insights',
+    screenTarget: 'Progress',
+    bgColor: '#b4d2b6',
   },
 ];
 
@@ -105,6 +171,10 @@ export const ContentService = {
     }
   },
 
+  async getInsideFeatures(): Promise<InsideFeatureItem[]> {
+    return MOCK_INSIDE_FEATURES;
+  },
+
   async getExercises(): Promise<ExerciseItem[]> {
     try {
       const response = await apiClient.get<ExerciseItem[]>(Endpoints.exercises.list);
@@ -114,3 +184,4 @@ export const ContentService = {
     }
   },
 };
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ViewStyle, ImageSourcePropType } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { UserRole } from '../../types/auth.types';
 import { Colors } from '../../theme/colors';
@@ -9,7 +9,7 @@ import { Shadows } from '../../theme/spacing';
 interface ProfileOption {
   id: UserRole;
   label: string;
-  avatarUrl?: string;
+  avatarSource?: ImageSourcePropType;
   iconName?: keyof typeof MaterialIcons.glyphMap;
   bgColor: string;
 }
@@ -18,22 +18,19 @@ const PROFILES: ProfileOption[] = [
   {
     id: 'ADOLESCENTES',
     label: 'Adolescentes',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAblkMVA0H49SglFfkUede6NktGZhBDacPtK_kF1Vgil42WOJCcweIKPl4eLY-Sakl-IWpL26Z64GNJ7NckD_9xKHGL8TZoCEdPSvWAUbGjzrY14Soi8MaxfWVWeAN_gb2s51t-Ghh9pf6VUabYwHJAX3J1XBE51XR5U_onDKcNG0NZ1uL6GFsR0TDUDBpWzumq4B6Gle8OBoFq0Z_iq1-oYWuu_KTKO3ZQoq-iX4vzuHoeOfxgsx7VGpabq8PJaDcpEXs',
+    avatarSource: require('../../../assets/images/mascot_skater.png'),
     bgColor: Colors.secondaryContainer,
   },
   {
     id: 'FAMILIAS',
     label: 'Familias',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDyX_kF77Yt4zXO803bac2O2Vttasup6B35eJeu1ph4FehhUiE-9rhR4a9rpnD3RX3zHvIzMFejiNxewnku_Lw1O5kvCfvc2iBn_CJuOGlGEcxjQ_KCa8o51hHQBrKDv-AvzDH0DP5BPDYE3oVzWzNyB1hrw3bT4_9oWBKo39RmlRfZU6PtwrWHwHJVBKtFykKsucsXh16L67xf_uShBxHhTLWM0Ufd84SP0JjOGb_SKgeoWq9-u2KwS-wyluY9MyM5WGY',
+    avatarSource: require('../../../assets/images/mascots_teal_duo_crop.png'),
     bgColor: Colors.tertiaryContainer,
   },
   {
     id: 'PSICOLOGOS',
     label: 'Psicólogos',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuB2nSWI389TCB9dEYtnPCx8So0R1JYhGR0rf-umTFbWjLpjvFs5R_cbB41lTnF9n_YOB2uVxqIRlmEh5c24g-_nF3tPrnv6EC-ubuyST6StOrCfbg4OuW0RyhoYsADMJe5Ox9qEqJxUPkeeX7RjAUmkwOljL96nLzFxecTRbdVT-8HazoOZZpuKKSQP2CoWWs7QLUTJVQThH0gzGrb4BsHFiOHwSCWBwUiBVRaaANdx9tdJn1RDVMufu9TUEG05V9rpzOE',
+    avatarSource: require('../../../assets/images/mascots_green_duo_crop.png'),
     bgColor: Colors.primaryContainer,
   },
   {
@@ -78,8 +75,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                   isSelected && Shadows.mascot,
                 ]}
               >
-                {profile.avatarUrl ? (
-                  <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
+                {profile.avatarSource ? (
+                  <Image source={profile.avatarSource} style={styles.avatarImage} />
                 ) : (
                   <MaterialIcons
                     name={profile.iconName || 'person'}
@@ -130,26 +127,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarWrapper: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: 2.5,
     borderColor: 'transparent',
     marginBottom: 6,
-    opacity: 0.75,
+    padding: 6,
+    opacity: 0.85,
   },
   avatarSelected: {
     borderColor: Colors.primary,
     opacity: 1,
-    transform: [{ scale: 1.06 }],
+    transform: [{ scale: 1.08 }],
+    backgroundColor: '#ffffff',
   },
   avatarImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
   label: {
     ...Typography.labelSm,

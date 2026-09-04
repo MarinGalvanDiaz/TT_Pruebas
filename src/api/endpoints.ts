@@ -1,16 +1,17 @@
-/**
- * Spring Boot Backend API Endpoints
- * Base URL defaults to http://localhost:8080 or can be configured via environment variable
- */
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 export const Endpoints = {
   auth: {
     login: `${API_BASE_URL}/auth/login`,
     register: `${API_BASE_URL}/auth/register`,
-    me: `${API_BASE_URL}/auth/me`,
-    refreshToken: `${API_BASE_URL}/auth/refresh-token`,
+    google: `${API_BASE_URL}/auth/google`,
+    refresh: `${API_BASE_URL}/auth/refresh`,
+    logout: `${API_BASE_URL}/auth/logout`,
+    logoutAll: `${API_BASE_URL}/auth/logout-all`,
     forgotPassword: `${API_BASE_URL}/auth/forgot-password`,
+    resetPassword: `${API_BASE_URL}/auth/reset-password`,
+    verifyEmail: `${API_BASE_URL}/auth/verify-email`,
+    me: `${API_BASE_URL}/auth/me`,
   },
   users: {
     profile: `${API_BASE_URL}/users/profile`,
@@ -30,3 +31,4 @@ export const Endpoints = {
     summary: `${API_BASE_URL}/progress/summary`,
   },
 } as const;
+

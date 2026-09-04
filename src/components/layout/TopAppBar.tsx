@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Share, Linking, Platform } fr
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
+import { BorderRadius } from '../../theme/spacing';
 
 interface TopAppBarProps {
   title?: string;
@@ -48,25 +49,30 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
   return (
     <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={handleContact}
-        accessibilityLabel="Contacto"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <MaterialIcons name="mail" size={22} color={Colors.onTertiaryContainer} />
-      </TouchableOpacity>
+      <View style={styles.logoRow}>
+        <View style={styles.brandDot} />
+        <Text style={styles.title}>{title}</Text>
+      </View>
 
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.actionsRow}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleContact}
+          accessibilityLabel="Contacto"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialIcons name="mail-outline" size={22} color={Colors.onSurface} />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={handleShare}
-        accessibilityLabel="Compartir"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <MaterialIcons name="share" size={22} color={Colors.onTertiaryContainer} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleShare}
+          accessibilityLabel="Compartir"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialIcons name="share" size={20} color={Colors.onSurface} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -74,22 +80,43 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 const styles = StyleSheet.create({
   header: {
     height: 56,
-    backgroundColor: Colors.tertiaryContainer,
+    backgroundColor: Colors.surfaceContainerLowest,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     width: '100%',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceVariant,
     zIndex: 50,
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  brandDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+  },
   title: {
-    ...Typography.headlineLg,
-    color: Colors.onTertiaryContainer,
-    fontWeight: '700',
+    ...Typography.headlineMd,
+    color: Colors.onSurface,
+    fontWeight: '800',
+    fontSize: 18,
+    letterSpacing: -0.3,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   iconButton: {
     padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceContainerLow,
   },
 });
+

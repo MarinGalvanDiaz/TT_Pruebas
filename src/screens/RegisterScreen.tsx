@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Image,
+  useWindowDimensions,
 } from 'react-native';
 import { TopAppBar } from '../components/layout/TopAppBar';
 import { WebHeader } from '../components/layout/WebHeader';
@@ -15,6 +17,7 @@ import { SegmentedControl } from '../components/modules/SegmentedControl';
 import { ProfileSelector } from '../components/modules/ProfileSelector';
 import { FloatingInput } from '../components/common/FloatingInput';
 import { GradientButton } from '../components/common/GradientButton';
+import { GoogleSignInButton } from '../components/common/GoogleSignInButton';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
@@ -25,20 +28,26 @@ interface RegisterScreenProps {
 }
 
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
-  const { register, selectedRole, setSelectedRole, isLoading, error, clearError } = useAuth();
+  const { register, loginWithGoogle, selectedRole, setSelectedRole, isLoading, error, clearError } =
+    useAuth();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+  const isWeb = Platform.OS === 'web';
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
+    confirmPassword?: string;
   }>({});
-  const isWeb = Platform.OS === 'web';
 
   const validate = (): boolean => {
-    const errors: { name?: string; email?: string; password?: string } = {};
+    const errors: typeof formErrors = {};
     if (!name.trim()) {
       errors.name = 'Ingresa tu nombre completo';
     }
@@ -52,6 +61,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     } else if (password.length < 6) {
       errors.password = 'La contraseña debe tener al menos 6 caracteres';
     }
+    if (password !== confirmPassword) {
+      errors.confirmPassword = 'Las contraseñas no coinciden';
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -61,8 +73,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     if (!validate()) return;
 
     const success = await register({
-      name,
-      email,
+      name: name.trim(),
+      email: email.trim(),
       password,
       role: selectedRole,
     });
@@ -75,10 +87,30 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    clearError();
+    setIsGoogleLoading(true);
+    try {
+      const mockGoogleIdToken = `mock-google-id-token-${Date.now()}`;
+      const success = await loginWithGoogle({
+        idToken: mockGoogleIdToken,
+        role: selectedRole,
+      });
+      if (success) {
+        navigation.navigate('Home');
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <View style={styles.outerCanvas}>
-      <View style={styles.container}>
-        <TopAppBar title="Libérate" />
+      <View style={[styles.container, isDesktop && styles.desktopContainer]}>
+        {/* Mobile top bar (mobile native / narrow screen) */}
+        {!isDesktop && <TopAppBar title="Libérate" />}
+
+        {/* Web Header for desktop / web browser */}
         {isWeb && (
           <WebHeader
             activeScreen="Register"
@@ -88,10 +120,25 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isDesktop && styles.desktopScrollContent,
+          ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.mainContent}>
+          <View style={[styles.mainContent, isDesktop && styles.desktopMainContent]}>
+            {/* Mascot Banner Header */}
+            <View style={[styles.mascotWelcomeHeader, Shadows.soft]}>
+              <Image
+                source={require('../../assets/images/mascots_group_banner.png')}
+                style={styles.mascotGroupImage}
+              />
+              <Text style={styles.mascotWelcomeTitle}>Comienza tu viaje</Text>
+              <Text style={styles.mascotWelcomeSubtitle}>
+                Crea tu cuenta segura y accede a recursos diseñados para ti.
+              </Text>
+            </View>
+
             {/* Segmented Control */}
             <SegmentedControl
               selected="registro"
@@ -108,7 +155,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 
             {/* Register Card */}
             <View style={[styles.formCard, Shadows.soft]}>
-              <Text style={styles.formTitle}>Crea tu cuenta</Text>
+              <Text style={styles.formTitle}>Crear cuenta</Text>
 
               {!!error && (
                 <View style={styles.errorBanner}>
@@ -149,21 +196,48 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
                   if (formErrors.password) setFormErrors({ ...formErrors, password: undefined });
                 }}
                 isPassword
-                placeholder="Crea una contraseña segura"
+                placeholder="Mínimo 6 caracteres"
                 error={formErrors.password}
               />
 
+              <FloatingInput
+                label="Confirmar contraseña"
+                value={confirmPassword}
+                onChangeText={(t) => {
+                  setConfirmPassword(t);
+                  if (formErrors.confirmPassword)
+                    setFormErrors({ ...formErrors, confirmPassword: undefined });
+                }}
+                isPassword
+                placeholder="Repite tu contraseña"
+                error={formErrors.confirmPassword}
+              />
+
               <GradientButton
-                title="Comenzar"
+                title="Crear cuenta"
                 onPress={handleRegister}
-                isLoading={isLoading}
+                isLoading={isLoading && !isGoogleLoading}
                 style={styles.submitButton}
+              />
+
+              {/* Social Login Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>o bien</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Google Sign In */}
+              <GoogleSignInButton
+                title="Registrarse con Google"
+                onPress={handleGoogleSignIn}
+                isLoading={isGoogleLoading}
               />
 
               <View style={styles.loginPrompt}>
                 <Text style={styles.promptText}>¿Ya tienes una cuenta? </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                  <Text style={styles.loginLink}>Ingresa aquí</Text>
+                  <Text style={styles.loginLink}>Iniciar sesión</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -179,31 +253,74 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 const styles = StyleSheet.create({
   outerCanvas: {
     flex: 1,
-    backgroundColor: Colors.surfaceDim,
+    backgroundColor: Colors.background,
     alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
   },
   container: {
     flex: 1,
     width: '100%',
-    maxWidth: Spacing.maxWidth,
     backgroundColor: Colors.surface,
-    position: 'relative',
+  },
+  desktopContainer: {
+    maxWidth: '100%',
   },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
   scrollContent: {
     paddingBottom: 24,
+    minHeight: '100%',
+    justifyContent: 'space-between',
+  },
+  desktopScrollContent: {
+    paddingBottom: 0,
   },
   mainContent: {
     paddingHorizontal: Spacing.safeMargin,
-    paddingTop: 20,
+    paddingTop: 24,
     alignItems: 'center',
+    maxWidth: 520,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  desktopMainContent: {
+    paddingTop: 36,
+    paddingBottom: 36,
+  },
+  mascotWelcomeHeader: {
+    width: '100%',
+    backgroundColor: Colors.primaryContainer,
+    borderRadius: BorderRadius.xl,
+    padding: 18,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  mascotGroupImage: {
+    width: '100%',
+    height: 76,
+    resizeMode: 'contain',
+    marginBottom: 8,
+  },
+  mascotWelcomeTitle: {
+    ...Typography.headlineMd,
+    color: Colors.onPrimaryContainer,
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  mascotWelcomeSubtitle: {
+    ...Typography.bodyMd,
+    color: Colors.onPrimaryContainer,
+    fontSize: 13,
+    opacity: 0.9,
+    textAlign: 'center',
   },
   formCard: {
     width: '100%',
-    backgroundColor: Colors.surfaceContainerLow,
+    backgroundColor: Colors.surfaceContainerLowest,
     borderRadius: BorderRadius.xl,
     padding: 24,
     borderWidth: 1,
@@ -215,6 +332,8 @@ const styles = StyleSheet.create({
     color: Colors.onSurface,
     textAlign: 'center',
     marginBottom: 20,
+    fontSize: 18,
+    fontWeight: '700',
   },
   errorBanner: {
     backgroundColor: Colors.errorContainer,
@@ -229,6 +348,22 @@ const styles = StyleSheet.create({
   submitButton: {
     width: '100%',
     marginTop: 8,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+    width: '100%',
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.surfaceVariant,
+  },
+  dividerText: {
+    ...Typography.labelSm,
+    color: Colors.onSurfaceVariant,
+    paddingHorizontal: 12,
   },
   loginPrompt: {
     flexDirection: 'row',
@@ -247,3 +382,5 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 });
+
+

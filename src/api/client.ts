@@ -1,15 +1,38 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_URL } from './endpoints';
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
+import { API_BASE_URL, Endpoints } from './endpoints';
+import { SecureTokenStorage } from '../services/secureStore';
+import { AuthResponse } from '../types/auth.types';
 
-// Token memory store (can be enhanced with SecureStore on mobile or localStorage on web)
-let authToken: string | null = null;
+// In-memory store for Access Token (short-lived)
+let memoryAccessToken: string | null = null;
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
 
 export const setAuthToken = (token: string | null) => {
-  authToken = token;
+  memoryAccessToken = token;
 };
 
 export const getAuthToken = (): string | null => {
-  return authToken;
+  return memoryAccessToken;
 };
 
 /**
@@ -17,38 +40,88 @@ export const getAuthToken = (): string | null => {
  */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 12000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 });
 
-// Request Interceptor: Attach JWT Bearer Token
+// Request Interceptor: Attach JWT Bearer Access Token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (authToken && config.headers) {
-      config.headers.Authorization = `Bearer ${authToken}`;
+    if (memoryAccessToken && config.headers) {
+      config.headers.Authorization = `Bearer ${memoryAccessToken}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Format errors and handle 401 Unauthorized
+// Response Interceptor: Transparent Refresh Token Rotation & Retry
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error) => {
-    if (error.response) {
-      // Server returned an error response (e.g. 400, 401, 403, 500)
-      console.warn(`[API Error ${error.response.status}]:`, error.response.data);
-      if (error.response.status === 401) {
-        setAuthToken(null);
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Do not attempt refresh on auth endpoints (login, register, refresh itself)
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/register') ||
+      originalRequest?.url?.includes('/auth/google') ||
+      originalRequest?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        // Queue concurrent requests while token is being refreshed
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
       }
-    } else if (error.request) {
-      // Network error or backend unreachable (Spring Boot server not running yet)
-      console.info('[API Network Info]: Spring Boot backend unreachable, using fallback mode.');
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refreshToken = await SecureTokenStorage.getRefreshToken();
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        // Call backend refresh endpoint with raw Axios to bypass interceptors
+        const refreshResponse = await axios.post<AuthResponse>(
+          Endpoints.auth.refresh,
+          { refreshToken },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        const newAccessToken = refreshResponse.data.accessToken || refreshResponse.data.token || null;
+        const newRefreshToken = refreshResponse.data.refreshToken;
+
+        setAuthToken(newAccessToken);
+        if (newRefreshToken) {
+          await SecureTokenStorage.saveRefreshToken(newRefreshToken);
+        }
+
+        processQueue(null, newAccessToken);
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return apiClient(originalRequest);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        setAuthToken(null);
+        await SecureTokenStorage.clearAll();
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
+
