@@ -36,6 +36,12 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
+    public String generateVerificationCode() {
+        int code = 100000 + secureRandom.nextInt(900000);
+        return String.valueOf(code);
+    }
+
+    @Override
     public String hashToken(String rawToken) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

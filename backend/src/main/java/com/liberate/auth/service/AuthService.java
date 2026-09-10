@@ -13,6 +13,7 @@ public interface AuthService {
     ApiResponse<Void> forgotPassword(ForgotPasswordRequest request, String clientIp);
     ApiResponse<Void> resetPassword(ResetPasswordRequest request);
     ApiResponse<Void> verifyEmail(VerifyEmailRequest request);
+    ApiResponse<Void> resendVerificationEmail(ResendVerificationRequest request, String clientIp);
     void logout(String rawRefreshToken);
     void logoutAll(UserPrincipal userPrincipal);
 }

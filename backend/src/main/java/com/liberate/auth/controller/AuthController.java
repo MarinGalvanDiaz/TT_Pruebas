@@ -80,6 +80,13 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<Void>> resendVerification(@Valid @RequestBody ResendVerificationRequest request,
+                                                               HttpServletRequest httpRequest) {
+        ApiResponse<Void> response = authService.resendVerificationEmail(request, getClientIp(httpRequest));
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestBody(required = false) RefreshTokenRequest request) {
         if (request != null && request.getRefreshToken() != null) {

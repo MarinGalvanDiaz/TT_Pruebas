@@ -35,6 +35,12 @@ public class User {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Column(name = "estado_cuenta", length = 50, nullable = false)
+    private String estadoCuenta = "ACTIVA";
+
+    @Column(name = "edad")
+    private Integer edad;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -155,6 +161,22 @@ public class User {
 
     public void setIdentities(List<AuthIdentity> identities) {
         this.identities = identities;
+    }
+
+    public String getEstadoCuenta() {
+        return estadoCuenta;
+    }
+
+    public void setEstadoCuenta(String estadoCuenta) {
+        this.estadoCuenta = estadoCuenta;
+    }
+
+    public Integer getEdad() {
+        return edad;
+    }
+
+    public void setEdad(Integer edad) {
+        this.edad = edad;
     }
 
     public List<RefreshToken> getRefreshTokens() {

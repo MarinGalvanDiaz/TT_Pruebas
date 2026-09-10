@@ -64,10 +64,13 @@ public class SecurityConfig {
                                 "/auth/refresh",
                                 "/auth/forgot-password",
                                 "/auth/reset-password",
-                                "/auth/verify-email"
+                                "/auth/verify-email",
+                                "/auth/resend-verification"
                         ).permitAll()
-                        // Public Content Endpoints
-                        .requestMatchers("/content/**").permitAll()
+                        // Public Content & Exercise Endpoints
+                        .requestMatchers("/content/**", "/exercises/**").permitAll()
+                        // Public Underage & Tutor Flow Endpoints
+                        .requestMatchers("/tutor-flow/**").permitAll()
                         // H2 Console in development
                         .requestMatchers("/h2-console/**").permitAll()
                         // All other endpoints require authentication

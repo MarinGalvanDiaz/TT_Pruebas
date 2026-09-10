@@ -17,6 +17,8 @@ public class UserResponse {
     private boolean emailVerified;
     private List<AuthProvider> providers;
     private String avatarUrl;
+    private String estadoCuenta;
+    private Integer edad;
     private Instant createdAt;
 
     public UserResponse() {}
@@ -29,6 +31,8 @@ public class UserResponse {
         dto.setRole(user.getRole());
         dto.setEmailVerified(user.isEmailVerificado());
         dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setEstadoCuenta(user.getEstadoCuenta());
+        dto.setEdad(user.getEdad());
         dto.setCreatedAt(user.getCreatedAt());
         if (user.getIdentities() != null) {
             dto.setProviders(user.getIdentities().stream()
@@ -92,6 +96,22 @@ public class UserResponse {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getEstadoCuenta() {
+        return estadoCuenta;
+    }
+
+    public void setEstadoCuenta(String estadoCuenta) {
+        this.estadoCuenta = estadoCuenta;
+    }
+
+    public Integer getEdad() {
+        return edad;
+    }
+
+    public void setEdad(Integer edad) {
+        this.edad = edad;
     }
 
     public Instant getCreatedAt() {

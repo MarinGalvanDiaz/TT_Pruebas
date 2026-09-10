@@ -1,70 +1,67 @@
-# Libérate Frontend (React Native + Expo para Móvil y Web)
+# Libérate - Plataforma de Bienestar Emocional
 
-Aplicación multiplataforma (iOS, Android y Web) para la plataforma de bienestar y apoyo emocional **Libérate**, desarrollada con **React Native** y **Expo**, con diseño fiel al sistema **Serene Support** extraído de **Stitch**, y arquitectura preparada para consumir un backend en **Spring Boot**.
-
----
-
-## 🎨 Sistema de Diseño (Serene Support)
-
-El diseño está centrado en la seguridad psicológica, accesibilidad y calidez táctil:
-- **Colores primarios:** Lavanda (`#635979`, `#d1c4e9`) para áreas principales y acciones.
-- **Colores secundarios:** Azul cielo (`#326578`, `#b5e7fe`) para acompañamiento y progreso.
-- **Colores terciarios:** Verde menta (`#4a654e`, `#b4d2b6`) para estados de éxito y calma.
-- **Canvas:** Fondo cálido (`#fbf9f5`) que reduce la fatiga visual.
-- **Micro-interacciones:** Botones elásticos con degradado (`linear-gradient`), sombras suaves (`soft-shadow`) y selección de perfiles con mascotas ilustradas.
+Proyecto integral multiplataforma compuesto por:
+1. **Frontend (`frontend/`)**: Aplicación en React Native con Expo (iOS, Android y Web) con interfaz basada en el sistema de diseño Serene Support.
+2. **Backend (`backend/`)**: API REST de alto rendimiento en Spring Boot 3 con Spring Security, JWT, autenticación OAuth2 con Google y servicio de mensajería SMTP con Mailgun.
+3. **Base de Datos (`schema.sql`)**: Esquema relacional optimizado para PostgreSQL con soporte para usuarios, identidades federadas, tokens criptográficos, ejercicios de regulación emocional y seguimiento de estado de ánimo.
 
 ---
 
-## 📁 Estructura del Proyecto
+## 📁 Estructura del Repositorio
 
 ```text
-src/
-├── api/                      # Capa de integración con Spring Boot
-│   ├── client.ts             # Cliente Axios configurado con interceptor JWT
-│   └── endpoints.ts          # Definición de rutas REST (/api/v1/auth/login, etc.)
-├── components/               # Componentes modulares y reutilizables
-│   ├── common/               # GradientButton, FloatingInput, etc.
-│   ├── layout/               # TopAppBar, WebHeader, Footer
-│   └── modules/              # ProfileSelector, VideoPreviewCard, FaqAccordion, NewsCarousel
-├── context/                  # AuthContext (Usuario, Rol, Token, Login, Registro)
-├── navigation/               # RootNavigator (React Navigation Stack + Bottom Tabs)
-├── screens/                  # Pantallas de la aplicación
-│   ├── HomeScreen.tsx        # Bienvenida / Landing con Video, FAQs y Novedades
-│   ├── LoginScreen.tsx       # Ingreso con selector de perfiles (Adolescentes, Familias, Psicólogos, Admin)
-│   ├── RegisterScreen.tsx    # Registro de cuenta
-│   ├── BreathingScreen.tsx   # Ejercicio táctil de respiración 4-4-4
-│   └── ProgressScreen.tsx    # Seguimiento emocional diario y resumen semanal
-├── theme/                    # Tokens de diseño (colors, typography, spacing, shadows)
-├── types/                    # DTOs y modelos tipados de Spring Boot
-└── services/                 # Servicios de negocio (AuthService, ContentService)
+.
+├── backend/                  # Servicio REST en Spring Boot 3.2
+│   ├── mvnw.cmd              # Wrapper de Maven para Windows
+│   ├── mvnw                  # Wrapper de Maven para Linux/macOS
+│   ├── pom.xml               # Configuración de dependencias Maven
+│   ├── .env.example          # Variables de entorno de ejemplo (DB, Mailgun, JWT)
+│   └── src/                  # Código fuente Java y recursos
+├── frontend/                 # Aplicación móvil y web en React Native + Expo
+│   ├── App.tsx               # Punto de entrada de la UI
+│   ├── package.json          # Dependencias y scripts de Expo
+│   ├── .env.example          # Variables de entorno del frontend
+│   └── src/                  # Componentes, pantallas, contextos y navegación
+└── schema.sql                # Script de base de datos PostgreSQL con datos semilla
 ```
 
 ---
 
-## 🚀 Ejecución del Proyecto
+## 🚀 Puesta en Marcha
 
-### 1. Requisitos
-- Node.js 18+ instalado.
-
-### 2. Iniciar en Web (Navegador)
+### 1. Base de Datos (PostgreSQL)
+Ejecuta el script `schema.sql` en tu instancia de PostgreSQL:
 ```bash
-npm run web
+psql -U postgres -d liberatedb -f schema.sql
 ```
 
-### 3. Iniciar en Móvil (Expo Go / Emulador)
-```bash
-npm run android
-# o
-npm run ios
-```
+### 2. Backend (Spring Boot)
+1. Navega a `backend/`:
+   ```bash
+   cd backend
+   ```
+2. Copia `.env.example` a `.env` y configura tus credenciales (Base de datos, Mailgun API Key y SMTP):
+   ```bash
+   cp .env.example .env
+   ```
+3. Ejecuta el backend con el wrapper de Maven:
+   - **En Windows:**
+     ```cmd
+     mvnw.cmd spring-boot:run
+     ```
+   - **En Linux/macOS:**
+     ```bash
+     ./mvnw spring-boot:run
+     ```
 
----
-
-## 🔌 Conexión con Backend Spring Boot
-
-La aplicación está lista para comunicarse con los controladores REST de Spring Boot:
-- Configura la URL base en el archivo `.env`:
-  ```env
-  EXPO_PUBLIC_API_URL=http://localhost:8080/api/v1
-  ```
-- **Fallback Simulado (Mock Mode):** Si el servidor Spring Boot no está levantado en el momento de la prueba, la aplicación cambia de forma transparente al modo simulado con usuarios de prueba para que puedas explorar todas las pantallas y flujos de inmediato.
+### 3. Frontend (React Native + Expo)
+1. Navega a `frontend/`:
+   ```bash
+   cd frontend
+   ```
+2. Inicia la aplicación:
+   ```bash
+   npm run web      # Para navegador web
+   npm run android  # Para emulador o dispositivo Android
+   npm run ios      # Para simulador iOS
+   ```

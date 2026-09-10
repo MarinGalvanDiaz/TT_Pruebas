@@ -76,6 +76,7 @@ class AuthServiceTests {
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(sampleUser);
         when(tokenService.generateRawToken()).thenReturn("raw-token-123");
+        when(tokenService.generateVerificationCode()).thenReturn("123456");
         when(tokenService.hashToken(anyString())).thenReturn("hash-123");
         when(jwtTokenProvider.generateAccessToken(any())).thenReturn("jwt-access-token");
         when(jwtTokenProvider.getExpirationTimeMs()).thenReturn(900000L);

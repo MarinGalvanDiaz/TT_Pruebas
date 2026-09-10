@@ -1,15 +1,45 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# =============================================================================
+# Git Ignore for Libérate (Monorepo: Frontend + Backend)
+# =============================================================================
 
-# dependencies
+# Dependencies
 node_modules/
+frontend/node_modules/
 
-# Expo
+# Expo & Web builds
 .expo/
+frontend/.expo/
 dist/
+frontend/dist/
 web-build/
+frontend/web-build/
 expo-env.d.ts
+frontend/expo-env.d.ts
 
-# Native
+# Backend / Maven / Java
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+
+# IDE & OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Environment variables & secrets (NEVER commit credentials)
+.env
+.env.local
+.env*.local
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+
+# Native builds
 .kotlin/
 *.orig.*
 *.jks
@@ -17,25 +47,19 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+frontend/ios/
+frontend/android/
+/ios
+/android
 
-# Metro
-.metro-health-check*
-
-# debug
+# Logs & Metro
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+.metro-health-check*
+*.log
+backend/logs/
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
+# Typescript
 *.tsbuildinfo
-
-# generated native folders
-/ios
-/android
+frontend/*.tsbuildinfo
