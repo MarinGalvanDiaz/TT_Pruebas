@@ -32,12 +32,14 @@ Thumbs.db
 
 # Environment variables & secrets (NEVER commit credentials)
 .env
-.env.local
+.env.*
 .env*.local
-backend/.env
-backend/.env.local
-frontend/.env
-frontend/.env.local
+*.env
+*.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
 
 # Native builds
 .kotlin/
