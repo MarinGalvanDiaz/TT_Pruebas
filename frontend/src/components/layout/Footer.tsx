@@ -69,9 +69,9 @@ export const Footer: React.FC = () => {
         </View>
       </View>
 
-      {/* Bottom Copyright & PAPIME code */}
+      {/* Bottom Copyright */}
       <View style={styles.bottomRow}>
-        <Text style={styles.copyright}>© 2023 Proyecto PAPIME PE309026</Text>
+        <Text style={styles.copyright}>© TT 2027-A128</Text>
       </View>
     </View>
   );

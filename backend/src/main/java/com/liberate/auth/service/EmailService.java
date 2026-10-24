@@ -401,7 +401,7 @@ public class EmailService {
               <div class="container">
                 <div class="header">
                   <h1>Libérate</h1>
-                  <p>UNAM · IPN · LABPSIIT · Protocolo PAPIME PE309026</p>
+                  <p>UNAM · IPN · LABPSIIT</p>
                 </div>
                 <div class="content">
                   <div class="greeting">Estimada madre, padre o tutor legal:</div>

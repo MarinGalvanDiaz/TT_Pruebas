@@ -185,7 +185,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           {/* Sección: Testimonios (Carrusel / Grid Responsivo) */}
           <NewsCarousel items={testimonials} />
 
-          {/* Sección: Colaboradores e Instituciones (UNAM, IPN, LABPSIIT + PAPIME) */}
+          {/* Sección: Colaboradores e Instituciones (UNAM, IPN, LABPSIIT) */}
           <View
             onLayout={(event) => {
               const { y } = event.nativeEvent.layout;
