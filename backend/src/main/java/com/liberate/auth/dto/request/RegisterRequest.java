@@ -25,6 +25,9 @@ public class RegisterRequest {
     @NotNull(message = "El rol es requerido")
     private UserRole role = UserRole.ADOLESCENTES;
 
+    @JsonAlias({"age"})
+    private Integer edad;
+
     public RegisterRequest() {}
 
     public RegisterRequest(String nombre, String email, String password, UserRole role) {
@@ -32,6 +35,27 @@ public class RegisterRequest {
         this.email = email;
         this.password = password;
         this.role = role != null ? role : UserRole.ADOLESCENTES;
+    }
+
+    public RegisterRequest(String nombre, String email, String password, UserRole role, Integer edad) {
+        this(nombre, email, password, role);
+        this.edad = edad;
+    }
+
+    public Integer getEdad() {
+        return edad;
+    }
+
+    public void setEdad(Integer edad) {
+        this.edad = edad;
+    }
+
+    public Integer getAge() {
+        return edad;
+    }
+
+    public void setAge(Integer age) {
+        this.edad = age;
     }
 
     public String getNombre() {

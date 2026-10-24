@@ -27,7 +27,39 @@ Proyecto integral multiplataforma compuesto por:
 
 ---
 
-## 🚀 Puesta en Marcha
+## 🐳 Ejecución Rápida con Docker Compose
+
+La forma más rápida y recomendada de levantar el entorno completo (Base de Datos PostgreSQL 17, Backend Spring Boot 3.2 y Frontend Expo Web / Nginx) es utilizando Docker Compose:
+
+1. **(Opcional) Configurar variables de entorno**:
+   Si deseas personalizar contraseñas o tokens de Mailtrap/Google, copia el archivo de ejemplo en la raíz:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Iniciar todos los servicios**:
+   ```bash
+   docker compose up --build
+   ```
+   O en segundo plano:
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. **Acceder a los servicios**:
+   - **Frontend Web**: [http://localhost:8081](http://localhost:8081)
+   - **Backend API REST**: [http://localhost:8080/api](http://localhost:8080/api)
+   - **PostgreSQL**: `localhost:5433` (usuario `postgres`, base de datos `liberatedb`)
+
+4. **Detener los servicios**:
+   ```bash
+   docker compose down
+   ```
+   *(Si deseas eliminar también los volúmenes de datos: `docker compose down -v`)*
+
+---
+
+## 🚀 Puesta en Marcha Manual (Sin Docker)
 
 ### 1. Base de Datos (PostgreSQL)
 Ejecuta el script `schema.sql` en tu instancia de PostgreSQL:

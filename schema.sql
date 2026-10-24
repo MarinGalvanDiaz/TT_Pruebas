@@ -10,6 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =============================================================================
 -- 1. ELIMINACIÓN PREVENTIVA DE TABLAS (Orden inverso de dependencias)
 -- =============================================================================
+DROP TABLE IF EXISTS cuestionarios_adolescente CASCADE;
 DROP TABLE IF EXISTS solicitudes_tutor CASCADE;
 DROP TABLE IF EXISTS registro_intentos_menores CASCADE;
 DROP TABLE IF EXISTS testimonios_novedades CASCADE;
@@ -39,6 +40,7 @@ CREATE TABLE usuarios (
         CHECK (role IN ('ADOLESCENTES', 'FAMILIAS', 'PSICOLOGOS', 'ADMIN')),
     estado_cuenta VARCHAR(50) NOT NULL DEFAULT 'ACTIVA'
         CHECK (estado_cuenta IN ('ACTIVA', 'PENDIENTE_DE_TUTOR', 'BLOQUEADA_MENOR')),
+    evaluacion_inicial_completada BOOLEAN NOT NULL DEFAULT FALSE,
     edad INTEGER,
     avatar_url VARCHAR(500),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -159,6 +161,33 @@ CREATE TABLE solicitudes_tutor (
 CREATE UNIQUE INDEX idx_solicitud_tutor_token ON solicitudes_tutor(token_hash);
 CREATE INDEX idx_solicitud_tutor_email ON solicitudes_tutor(email_tutor);
 CREATE INDEX idx_solicitud_tutor_adolescente_email ON solicitudes_tutor(adolescente_email);
+
+-- Cuestionarios Iniciales de Evaluación Clínica para Adolescentes (CMASR-2, BAI-Y, EBIS, DERS-E)
+CREATE TABLE cuestionarios_adolescente (
+    id VARCHAR(36) PRIMARY KEY,
+    usuario_id VARCHAR(36) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    cmasr2_respuestas TEXT,
+    cmasr2_score INTEGER,
+    cmasr2_def_score INTEGER,
+    cmasr2_inc_score INTEGER,
+    baiy_respuestas TEXT,
+    baiy_score INTEGER,
+    ebis_respuestas TEXT,
+    ebis_score INTEGER,
+    ebis_bandera_roja BOOLEAN NOT NULL DEFAULT FALSE,
+    derse_respuestas TEXT,
+    derse_score INTEGER,
+    derse_f1 INTEGER,
+    derse_f2 INTEGER,
+    derse_f3 INTEGER,
+    derse_f4 INTEGER,
+    estado_evaluacion VARCHAR(50) NOT NULL DEFAULT 'COMPLETADO'
+        CHECK (estado_evaluacion IN ('COMPLETADO', 'ALERTA_CRITICA', 'EN_PROGRESO')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_cuestionarios_usuario ON cuestionarios_adolescente(usuario_id);
 
 
 -- =============================================================================

@@ -92,10 +92,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
-      const response = await AuthService.register({ ...req, role: selectedRole });
+      const response = await AuthService.register({ ...req, role: req.role || selectedRole });
       const activeToken = response.accessToken || response.token || '';
-      setUser(response.user);
-      setToken(activeToken);
+      if (activeToken && response.user?.estadoCuenta !== 'PENDIENTE_DE_TUTOR') {
+        setUser(response.user);
+        setToken(activeToken);
+      } else {
+        setUser(null);
+        setToken(null);
+      }
       return true;
     } catch (err: any) {
       const message =

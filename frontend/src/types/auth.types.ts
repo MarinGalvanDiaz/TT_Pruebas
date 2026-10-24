@@ -22,6 +22,9 @@ export interface UserProfile {
   emailVerified?: boolean;
   providers?: AuthProviderType[];
   avatarUrl?: string;
+  estadoCuenta?: string;
+  evaluacionInicialCompletada?: boolean;
+  edad?: number;
   createdAt?: string;
 }
 
@@ -37,6 +40,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
   role: UserRole;
+  edad?: number;
+  age?: number;
 }
 
 export interface GoogleLoginRequest {

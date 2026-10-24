@@ -62,7 +62,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
     const success = await login({ email, password, role: selectedRole });
     if (success) {
-      navigation.navigate('SessionProfile');
+      if (selectedRole === 'ADOLESCENTES') {
+        navigation.navigate('AdolescentQuestionnaire');
+      } else {
+        navigation.navigate('SessionProfile');
+      }
     }
   };
 

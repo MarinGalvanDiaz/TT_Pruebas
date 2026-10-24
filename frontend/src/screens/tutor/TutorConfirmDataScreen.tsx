@@ -22,30 +22,50 @@ export default function TutorConfirmDataScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
 
-  const token = route.params?.token || '';
-  const initialEmail = route.params?.emailTutor || '';
+  const getWebQueryParam = (param: string): string => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        return searchParams.get(param) || '';
+      } catch (e) {
+        return '';
+      }
+    }
+    return '';
+  };
 
+  const initialToken = route.params?.token || getWebQueryParam('token') || '';
+  const initialEmail = route.params?.emailTutor || getWebQueryParam('email') || '';
+
+  const [token, setToken] = useState(initialToken);
   const [emailTutor, setEmailTutor] = useState(initialEmail);
   const [telefono, setTelefono] = useState('');
   const [autorizaWhatsapp, setAutorizaWhatsapp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(!!token && !initialEmail);
+  const [initialLoading, setInitialLoading] = useState(!!initialToken && !initialEmail);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (token && !emailTutor) {
-      TutorService.getStatus(token)
-        .then((status) => {
-          setEmailTutor(status.emailTutor);
-          if (status.telefonoTutor) setTelefono(status.telefonoTutor);
-          setAutorizaWhatsapp(status.autorizaWhatsapp);
-        })
-        .catch((err) => {
-          setErrorMessage('No se pudo verificar el enlace o ha expirado.');
-        })
-        .finally(() => setInitialLoading(false));
+    const activeToken = route.params?.token || getWebQueryParam('token') || token;
+    if (activeToken) {
+      if (activeToken !== token) {
+        setToken(activeToken);
+      }
+      if (!emailTutor) {
+        setInitialLoading(true);
+        TutorService.getStatus(activeToken)
+          .then((status) => {
+            setEmailTutor(status.emailTutor);
+            if (status.telefonoTutor) setTelefono(status.telefonoTutor);
+            setAutorizaWhatsapp(status.autorizaWhatsapp);
+          })
+          .catch((err) => {
+            setErrorMessage('No se pudo verificar el enlace o ha expirado.');
+          })
+          .finally(() => setInitialLoading(false));
+      }
     }
-  }, [token]);
+  }, [route.params?.token, token]);
 
   const handleContinue = async () => {
     setErrorMessage(null);

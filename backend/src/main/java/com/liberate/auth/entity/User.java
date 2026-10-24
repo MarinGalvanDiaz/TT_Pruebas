@@ -38,6 +38,9 @@ public class User {
     @Column(name = "estado_cuenta", length = 50, nullable = false)
     private String estadoCuenta = "ACTIVA";
 
+    @Column(name = "evaluacion_inicial_completada", nullable = false)
+    private boolean evaluacionInicialCompletada = false;
+
     @Column(name = "edad")
     private Integer edad;
 
@@ -169,6 +172,14 @@ public class User {
 
     public void setEstadoCuenta(String estadoCuenta) {
         this.estadoCuenta = estadoCuenta;
+    }
+
+    public boolean isEvaluacionInicialCompletada() {
+        return evaluacionInicialCompletada;
+    }
+
+    public void setEvaluacionInicialCompletada(boolean evaluacionInicialCompletada) {
+        this.evaluacionInicialCompletada = evaluacionInicialCompletada;
     }
 
     public Integer getEdad() {

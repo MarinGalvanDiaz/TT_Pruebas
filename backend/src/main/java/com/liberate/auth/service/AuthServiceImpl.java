@@ -71,22 +71,52 @@ public class AuthServiceImpl implements AuthService {
         rateLimiterService.checkRateLimit(rateLimitKey);
 
         String normalizedEmail = request.getEmail().trim().toLowerCase();
+        boolean isUnderageAdolescent = (request.getRole() == UserRole.ADOLESCENTES)
+                && (request.getEdad() != null && request.getEdad() < 18);
+
+        User savedUser;
 
         if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            rateLimiterService.recordFailedAttempt(rateLimitKey);
-            throw new UserAlreadyExistsException("Ya existe una cuenta con este correo electrónico");
+            Optional<User> existingOpt = userRepository.findByEmailIgnoreCase(normalizedEmail);
+            if (existingOpt.isPresent() && "PENDIENTE_DE_TUTOR".equalsIgnoreCase(existingOpt.get().getEstadoCuenta())) {
+                User existing = existingOpt.get();
+                existing.setNombre(request.getNombre().trim());
+                existing.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+                if (request.getEdad() != null) {
+                    existing.setEdad(request.getEdad());
+                }
+                savedUser = userRepository.save(existing);
+                logger.info("[AUTH] Cuenta pendiente de tutor actualizada con nueva contraseña: {}", savedUser.getEmail());
+            } else {
+                rateLimiterService.recordFailedAttempt(rateLimitKey);
+                throw new UserAlreadyExistsException("Ya existe una cuenta con este correo electrónico");
+            }
+        } else {
+            String passwordHash = passwordEncoder.encode(request.getPassword());
+            User user = new User(request.getNombre().trim(), normalizedEmail, passwordHash, request.getRole());
+            user.setEmailVerificado(false);
+            user.setEdad(request.getEdad());
+            user.setEstadoCuenta(isUnderageAdolescent ? "PENDIENTE_DE_TUTOR" : "ACTIVA");
+
+            AuthIdentity localIdentity = new AuthIdentity(user, AuthProvider.LOCAL, normalizedEmail);
+            user.addIdentity(localIdentity);
+
+            savedUser = userRepository.save(user);
+            logger.info("New user registered successfully: {} (Estado: {})", savedUser.getEmail(), savedUser.getEstadoCuenta());
         }
 
-        String passwordHash = passwordEncoder.encode(request.getPassword());
-        User user = new User(request.getNombre().trim(), normalizedEmail, passwordHash, request.getRole());
-        user.setEmailVerificado(false);
+        // Si es menor de edad pendiente de autorización de tutor, NO se le inicia sesión ni se envía token de verificación estándar
+        if ("PENDIENTE_DE_TUTOR".equalsIgnoreCase(savedUser.getEstadoCuenta())) {
+            rateLimiterService.resetAttempts(rateLimitKey);
+            return new AuthResponse(
+                    null,
+                    null,
+                    0,
+                    UserResponse.fromEntity(savedUser)
+            );
+        }
 
-        AuthIdentity localIdentity = new AuthIdentity(user, AuthProvider.LOCAL, normalizedEmail);
-        user.addIdentity(localIdentity);
-
-        User savedUser = userRepository.save(user);
-
-        // Generate verification code (6 dígitos)
+        // Generate verification code (6 dígitos) para usuarios adultos
         String rawVerifyToken = tokenService.generateVerificationCode();
         String verifyHash = tokenService.hashToken(rawVerifyToken);
         EmailVerificationToken verificationToken = new EmailVerificationToken(
@@ -105,7 +135,6 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(new RefreshToken(refreshHash, savedUser, expiryDate));
 
         rateLimiterService.resetAttempts(rateLimitKey);
-        logger.info("New user registered successfully: {}", savedUser.getEmail());
 
         return new AuthResponse(
                 accessToken,

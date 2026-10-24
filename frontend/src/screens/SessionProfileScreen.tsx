@@ -108,6 +108,21 @@ export const SessionProfileScreen: React.FC<SessionProfileScreenProps> = ({ navi
 
             {/* Actions */}
             <View style={styles.actionsContainer}>
+              {userRole === 'ADOLESCENTES' && (
+                <TouchableOpacity
+                  style={styles.questionnaireButton}
+                  onPress={() => navigation.navigate('AdolescentQuestionnaire')}
+                  activeOpacity={0.85}
+                >
+                  <MaterialIcons name="assignment" size={20} color="#ffffff" />
+                  <Text style={styles.questionnaireButtonText}>
+                    {user?.evaluacionInicialCompletada
+                      ? 'Revisar Cuestionarios Iniciales'
+                      : 'Realizar Cuestionarios Iniciales'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
@@ -243,6 +258,21 @@ const styles = StyleSheet.create({
   actionsContainer: {
     width: '100%',
     gap: 12,
+  },
+  questionnaireButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.md,
+    ...Shadows.button,
+  },
+  questionnaireButtonText: {
+    ...Typography.labelSmBold,
+    color: '#ffffff',
+    fontSize: 15,
   },
   logoutButton: {
     flexDirection: 'row',

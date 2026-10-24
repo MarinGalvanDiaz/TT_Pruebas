@@ -68,7 +68,7 @@ public class SecurityConfig {
                                 "/auth/resend-verification"
                         ).permitAll()
                         // Public Content & Exercise Endpoints
-                        .requestMatchers("/content/**", "/exercises/**").permitAll()
+                        .requestMatchers("/content/**", "/exercises/**", "/questionnaires/initial").permitAll()
                         // Public Underage & Tutor Flow Endpoints
                         .requestMatchers("/tutor-flow/**").permitAll()
                         // H2 Console in development

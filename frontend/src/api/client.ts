@@ -37,9 +37,9 @@ export const getAuthToken = (): string | null => {
 
 /**
  * Configured Axios Instance for Spring Boot API
+ * Note: Endpoints already include API_BASE_URL, so baseURL is omitted here to prevent URL duplication.
  */
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
   timeout: 12000,
   headers: {
     'Content-Type': 'application/json',
@@ -47,9 +47,13 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request Interceptor: Attach JWT Bearer Access Token
+// Request Interceptor: Attach JWT Bearer Access Token & sanitize URLs
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Safeguard: sanitize if a double /api/api/ was inadvertently formed
+    if (config.url && config.url.includes('/api/api/')) {
+      config.url = config.url.replace(/\/api\/api\//g, '/api/');
+    }
     if (memoryAccessToken && config.headers) {
       config.headers.Authorization = `Bearer ${memoryAccessToken}`;
     }

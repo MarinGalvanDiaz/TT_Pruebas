@@ -91,6 +91,19 @@ public class EmailService {
     }
 
     /**
+     * Envía correo al tutor/padre de familia notificándole la creación de su cuenta
+     * y proporcionándole un enlace seguro para establecer su contraseña personal.
+     */
+    public void sendTutorAccountCreatedEmail(String tutorEmail, String rawToken, String tutorName, String adolescentName) {
+        String resetUrl = frontendUrl + "/reset-password?token=" + rawToken;
+        String subject = "Libérate - Cuenta de tutor creada: Establece tu contraseña";
+        String htmlContent = buildTutorAccountCreatedEmailTemplate(tutorEmail, rawToken, tutorName, adolescentName, resetUrl);
+
+        logger.info("[EMAIL SERVICE] Enviando correo de bienvenida y establecimiento de contraseña a tutor {}. Token: {}", tutorEmail, rawToken);
+        sendHtmlEmail(tutorEmail, subject, htmlContent);
+    }
+
+    /**
      * Envía el directorio de apoyo y atención psicológica en formato accesible por correo electrónico.
      */
     public void sendDirectoryEmail(String toEmail, String recipientName) {
@@ -473,6 +486,74 @@ public class EmailService {
             </body>
             </html>
             """.formatted(adolescentName, age != null ? age : "N/D", tutorEmail, tutorPhone != null ? tutorPhone : "N/D");
+    }
+
+    private String buildTutorAccountCreatedEmailTemplate(String email, String token, String tutorName, String adolescentName, String resetUrl) {
+        String greeting = (tutorName != null && !tutorName.isBlank()) ? "Hola, " + tutorName : "Hola, estimado tutor/familiar";
+        String adolescentRef = (adolescentName != null && !adolescentName.isBlank()) ? adolescentName : "tu adolescente a cargo";
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Bienvenido a Libérate - Cuenta de Tutor Creada</title>
+              <style>
+                body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fbf9f5; color: #2d3748; }
+                .container { max-width: 580px; margin: 30px auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
+                .header { background: linear-gradient(135deg, #635979 0%, #4a654e 100%); padding: 36px 30px; text-align: center; color: #ffffff; }
+                .header h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px; }
+                .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.9; }
+                .content { padding: 36px 30px; }
+                .greeting { font-size: 18px; font-weight: 600; color: #1a202c; margin-bottom: 12px; }
+                .text { font-size: 15px; line-height: 1.6; color: #4a5568; margin-bottom: 20px; }
+                .token-box { background-color: #f7fafc; border: 2px dashed #cbd5e0; border-radius: 12px; padding: 16px; text-align: center; margin: 24px 0; }
+                .token-code { font-family: monospace; font-size: 18px; font-weight: 700; color: #635979; letter-spacing: 1px; word-break: break-all; }
+                .button-container { text-align: center; margin: 32px 0; }
+                .btn { display: inline-block; background-color: #635979; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 10px rgba(99, 89, 121, 0.25); }
+                .footer { background-color: #fbf9f5; padding: 24px 30px; text-align: center; font-size: 12px; color: #718096; border-top: 1px solid #edf2f7; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>Libérate</h1>
+                  <p>Acompañamiento y Bienestar Familiar</p>
+                </div>
+                <div class="content">
+                  <div class="greeting">{{GREETING}}</div>
+                  <p class="text">
+                    Has completado y autorizado exitosamente el protocolo de consentimiento informado para <strong>{{ADOLESCENT_NAME}}</strong>.
+                  </p>
+                  <p class="text">
+                    Hemos creado automáticamente tu cuenta en <strong>Libérate</strong> con el rol de <strong>Familia / Tutor</strong>. Para comenzar a usar la plataforma y definir tu contraseña personal segura, haz clic en el siguiente botón:
+                  </p>
+                  <div class="button-container">
+                    <a href="{{RESET_URL}}" class="btn" target="_blank">Establecer mi contraseña</a>
+                  </div>
+                  <p class="text" style="font-size: 13px; color: #718096;">
+                    O ingresa este token directamente en la pantalla de restablecer contraseña:
+                  </p>
+                  <div class="token-box">
+                    <div class="token-code">{{TOKEN}}</div>
+                  </div>
+                  <p class="text" style="font-size: 13px; color: #718096;">
+                    Una vez que elijas tu contraseña, podrás iniciar sesión con tu correo (<strong>{{EMAIL}}</strong>) para consultar recursos de bienestar familiar, guías de acompañamiento y módulos de orientación.
+                  </p>
+                </div>
+                <div class="footer">
+                  © 2026 Libérate (luminar.top) • Espacio UNAM / IPN / LABPSIIT
+                </div>
+              </div>
+            </body>
+            </html>
+            """
+            .replace("{{GREETING}}", greeting)
+            .replace("{{ADOLESCENT_NAME}}", adolescentRef)
+            .replace("{{RESET_URL}}", resetUrl)
+            .replace("{{TOKEN}}", token)
+            .replace("{{EMAIL}}", email);
     }
 }
 

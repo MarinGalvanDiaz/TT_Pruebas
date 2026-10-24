@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -25,6 +25,8 @@ import TutorDerivationGeneralScreen from '../screens/tutor/TutorDerivationGenera
 import TutorDerivationPriorityScreen from '../screens/tutor/TutorDerivationPriorityScreen';
 import TutorSymptomsScreen from '../screens/tutor/TutorSymptomsScreen';
 import TutorCompletionScreen from '../screens/tutor/TutorCompletionScreen';
+import { AdolescentQuestionnaireScreen } from '../screens/AdolescentQuestionnaireScreen';
+import { CriticalAlertScreen } from '../screens/CriticalAlertScreen';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { BorderRadius } from '../theme/spacing';
@@ -105,9 +107,65 @@ const TabNavigator = () => {
   );
 };
 
+const linking: LinkingOptions<any> = {
+  prefixes: [
+    '/',
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'http://localhost:3000',
+    'https://luminar.top',
+  ],
+  config: {
+    screens: {
+      MainTabs: {
+        path: '',
+        screens: {
+          HomeTab: '',
+          BreathingTab: 'breathing-tab',
+          ProgressTab: 'progress-tab',
+        },
+      },
+      Home: 'home',
+      Login: 'login',
+      Register: 'register',
+      ForgotPassword: 'forgot-password',
+      ResetPassword: 'reset-password',
+      VerifyEmail: 'verify-email',
+      SessionProfile: 'profile',
+      Breathing: 'breathing',
+      Progress: 'progress',
+
+      // Flujo de Tutor y Consentimiento para Menores de Edad
+      AdolescentBlocked: 'adolescent-blocked',
+      TutorInvitationSent: 'tutor-invitation-sent',
+      TutorConfirmData: 'tutor-confirm',
+      TutorConsent: 'tutor-consent',
+      TutorQuestionnaireIntro: 'tutor-intro',
+      TutorBlockA: 'tutor-block-a',
+      TutorBlockB: 'tutor-block-b',
+      TutorReviewBridge: 'tutor-bridge',
+      TutorDerivationGeneral: 'tutor-derivation-general',
+      TutorDerivationPriority: 'tutor-derivation-priority',
+      TutorSymptoms: 'tutor-symptoms',
+      TutorCompletion: 'tutor-completion',
+
+      // Cuestionarios Iniciales para Adolescentes
+      AdolescentQuestionnaire: 'questionnaire',
+      CriticalAlert: 'critical-alert',
+    },
+  },
+};
+
 export const RootNavigator = () => {
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      linking={linking}
+      fallback={
+        <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      }
+    >
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -139,6 +197,10 @@ export const RootNavigator = () => {
         <Stack.Screen name="TutorDerivationPriority" component={TutorDerivationPriorityScreen} />
         <Stack.Screen name="TutorSymptoms" component={TutorSymptomsScreen} />
         <Stack.Screen name="TutorCompletion" component={TutorCompletionScreen} />
+
+        {/* Cuestionarios Iniciales para Adolescentes */}
+        <Stack.Screen name="AdolescentQuestionnaire" component={AdolescentQuestionnaireScreen} />
+        <Stack.Screen name="CriticalAlert" component={CriticalAlertScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

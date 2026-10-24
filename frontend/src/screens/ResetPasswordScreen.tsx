@@ -34,8 +34,29 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({
   const isDesktop = width >= 768;
   const isWeb = Platform.OS === 'web';
 
-  const initialToken = route?.params?.token || '';
+  const getInitialToken = (): string => {
+    if (route?.params?.token) return String(route.params.token);
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        return searchParams.get('token') || '';
+      } catch (e) {
+        return '';
+      }
+    }
+    return '';
+  };
+
+  const initialToken = getInitialToken();
   const [token, setToken] = useState(initialToken);
+
+  React.useEffect(() => {
+    const activeToken = route?.params?.token || getInitialToken();
+    if (activeToken && !token) {
+      setToken(activeToken);
+    }
+  }, [route?.params?.token]);
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [formErrors, setFormErrors] = useState<{

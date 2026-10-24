@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api';
+export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/+$/, '');
 
 export const Endpoints = {
   auth: {
@@ -42,6 +42,11 @@ export const Endpoints = {
     symptoms: `${API_BASE_URL}/tutor-flow/symptoms`,
     complete: `${API_BASE_URL}/tutor-flow/complete`,
     sendDirectory: `${API_BASE_URL}/tutor-flow/send-directory`,
+  },
+  questionnaires: {
+    initial: `${API_BASE_URL}/questionnaires/initial`,
+    status: `${API_BASE_URL}/questionnaires/status`,
+    submit: `${API_BASE_URL}/questionnaires/initial/submit`,
   },
 } as const;
 

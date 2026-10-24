@@ -1,18 +1,24 @@
 package com.liberate.auth.service;
 
 import com.liberate.auth.dto.tutor.*;
+import com.liberate.auth.entity.AuthIdentity;
+import com.liberate.auth.entity.AuthProvider;
+import com.liberate.auth.entity.PasswordResetToken;
 import com.liberate.auth.entity.RegistroIntentoMenor;
 import com.liberate.auth.entity.SolicitudTutor;
 import com.liberate.auth.entity.User;
+import com.liberate.auth.entity.UserRole;
 import com.liberate.auth.exception.AppException;
 import com.liberate.auth.exception.InvalidTokenException;
 import com.liberate.auth.exception.RateLimitExceededException;
+import com.liberate.auth.repository.PasswordResetTokenRepository;
 import com.liberate.auth.repository.RegistroIntentoMenorRepository;
 import com.liberate.auth.repository.SolicitudTutorRepository;
 import com.liberate.auth.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +26,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.UUID;
 
 @Service
 public class TutorFlowServiceImpl implements TutorFlowService {
@@ -31,19 +38,25 @@ public class TutorFlowServiceImpl implements TutorFlowService {
     private final UserRepository userRepository;
     private final TokenService tokenService;
     private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     public TutorFlowServiceImpl(
             SolicitudTutorRepository solicitudTutorRepository,
             RegistroIntentoMenorRepository registroIntentoMenorRepository,
             UserRepository userRepository,
             TokenService tokenService,
-            EmailService emailService
+            EmailService emailService,
+            PasswordEncoder passwordEncoder,
+            PasswordResetTokenRepository passwordResetTokenRepository
     ) {
         this.solicitudTutorRepository = solicitudTutorRepository;
         this.registroIntentoMenorRepository = registroIntentoMenorRepository;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
         this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
     }
 
     @Override
@@ -272,10 +285,11 @@ public class TutorFlowServiceImpl implements TutorFlowService {
 
         solicitud.setEstado("FINALIZADO_DESBLOQUEADO");
 
-        // Desbloquear al adolescente en la base de datos si ya tiene usuario registrado
+        // 1. Desbloquear al adolescente en la base de datos si ya tiene usuario registrado
         if (solicitud.getAdolescenteEmail() != null) {
             userRepository.findByEmailIgnoreCase(solicitud.getAdolescenteEmail()).ifPresent(user -> {
                 user.setEstadoCuenta("ACTIVA");
+                user.setEmailVerificado(true);
                 if (solicitud.getAdolescenteEdad() != null) {
                     user.setEdad(solicitud.getAdolescenteEdad());
                 }
@@ -284,9 +298,12 @@ public class TutorFlowServiceImpl implements TutorFlowService {
                 logger.info("[TUTOR FLOW] Cuenta de adolescente desbloqueada y marcada como ACTIVA: {}", user.getEmail());
             });
 
-            // Enviar correo de invitación al adolescente para iniciar sesión y responder sus cuestionarios
+            // Enviar correo de notificación al adolescente informando que ya puede iniciar sesión
             emailService.sendAdolescentUnlockedEmail(solicitud.getAdolescenteEmail(), solicitud.getAdolescenteNombre());
         }
+
+        // 2. Crear cuenta de tutor con contraseña aleatoria y enviar correo de restablecimiento de contraseña
+        ensureTutorAccountCreatedAndSendResetPassword(solicitud);
 
         solicitudTutorRepository.save(solicitud);
 
@@ -294,6 +311,48 @@ public class TutorFlowServiceImpl implements TutorFlowService {
         response.setToken(token);
         response.setCuentaDesbloqueada(true);
         return response;
+    }
+
+    private void ensureTutorAccountCreatedAndSendResetPassword(SolicitudTutor solicitud) {
+        if (solicitud.getEmailTutor() == null || solicitud.getEmailTutor().isBlank()) {
+            return;
+        }
+
+        String tutorEmail = solicitud.getEmailTutor().trim().toLowerCase();
+
+        User tutorUser = userRepository.findByEmailIgnoreCase(tutorEmail).orElseGet(() -> {
+            String randomPass = UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "Lt1!";
+            String tutorName = (solicitud.getConsentimientoFirmaNombre() != null && !solicitud.getConsentimientoFirmaNombre().isBlank())
+                    ? solicitud.getConsentimientoFirmaNombre().trim()
+                    : "Tutor Legal";
+            User newTutor = new User(tutorName, tutorEmail, passwordEncoder.encode(randomPass), UserRole.FAMILIAS);
+            newTutor.setEstadoCuenta("ACTIVA");
+            newTutor.setEmailVerificado(true);
+
+            AuthIdentity localIdentity = new AuthIdentity(newTutor, AuthProvider.LOCAL, tutorEmail);
+            newTutor.addIdentity(localIdentity);
+
+            User saved = userRepository.save(newTutor);
+            logger.info("[TUTOR FLOW] Cuenta de tutor creada exitosamente con contraseña aleatoria para {}", saved.getEmail());
+            return saved;
+        });
+
+        // Generar token para que el tutor establezca su propia contraseña segura
+        passwordResetTokenRepository.deleteByUser(tutorUser);
+        String rawResetToken = tokenService.generateRawToken();
+        String resetTokenHash = tokenService.hashToken(rawResetToken);
+        Instant resetExpiry = Instant.now().plusSeconds(86400); // 24 horas
+
+        PasswordResetToken resetToken = new PasswordResetToken(resetTokenHash, tutorUser, resetExpiry);
+        passwordResetTokenRepository.save(resetToken);
+
+        // Enviar correo de bienvenida y establecimiento de contraseña
+        emailService.sendTutorAccountCreatedEmail(
+                tutorUser.getEmail(),
+                rawResetToken,
+                tutorUser.getNombre(),
+                solicitud.getAdolescenteNombre()
+        );
     }
 
     @Override

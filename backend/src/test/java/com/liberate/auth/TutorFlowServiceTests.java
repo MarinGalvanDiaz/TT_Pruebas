@@ -47,6 +47,12 @@ class TutorFlowServiceTests {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Mock
+    private com.liberate.auth.repository.PasswordResetTokenRepository passwordResetTokenRepository;
+
     @InjectMocks
     private TutorFlowServiceImpl tutorFlowService;
 
@@ -54,6 +60,7 @@ class TutorFlowServiceTests {
     void setUp() {
         lenient().when(tokenService.generateRawToken()).thenReturn("raw-token-12345");
         lenient().when(tokenService.hashToken(anyString())).thenAnswer(i -> "hash-" + i.getArgument(0));
+        lenient().when(passwordEncoder.encode(anyString())).thenReturn("bcrypt-random-hash");
     }
 
     @Test
@@ -148,6 +155,10 @@ class TutorFlowServiceTests {
                 .thenReturn(Optional.of(solicitud));
         when(userRepository.findByEmailIgnoreCase("carlos@example.com"))
                 .thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCase("mama@example.com"))
+                .thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(i -> i.getArgument(0));
         when(solicitudTutorRepository.save(any(SolicitudTutor.class)))
                 .thenAnswer(i -> i.getArgument(0));
 
@@ -156,8 +167,9 @@ class TutorFlowServiceTests {
         assertEquals("FINALIZADO_DESBLOQUEADO", response.getEstado());
         assertTrue(response.isCuentaDesbloqueada());
         assertEquals("ACTIVA", user.getEstadoCuenta());
-        verify(userRepository, times(1)).save(user);
+        verify(userRepository, atLeastOnce()).save(any(User.class));
         verify(emailService, times(1)).sendAdolescentUnlockedEmail(eq("carlos@example.com"), eq("Carlos"));
+        verify(emailService, times(1)).sendTutorAccountCreatedEmail(eq("mama@example.com"), anyString(), any(), eq("Carlos"));
     }
 }
 

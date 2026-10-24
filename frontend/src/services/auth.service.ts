@@ -94,12 +94,17 @@ export const AuthService = {
       const payload = {
         ...request,
         nombre: request.nombre || request.name,
+        name: request.name,
+        edad: request.edad !== undefined ? request.edad : request.age,
+        age: request.edad !== undefined ? request.edad : request.age,
       };
       const response = await apiClient.post<AuthResponse>(Endpoints.auth.register, payload);
       const token = response.data.accessToken || response.data.token || null;
-      setAuthToken(token);
-      if (response.data.refreshToken) {
-        await SecureTokenStorage.saveRefreshToken(response.data.refreshToken);
+      if (token) {
+        setAuthToken(token);
+        if (response.data.refreshToken) {
+          await SecureTokenStorage.saveRefreshToken(response.data.refreshToken);
+        }
       }
       return response.data;
     } catch (err: any) {

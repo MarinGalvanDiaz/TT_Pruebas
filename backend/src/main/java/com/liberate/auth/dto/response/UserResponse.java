@@ -18,6 +18,7 @@ public class UserResponse {
     private List<AuthProvider> providers;
     private String avatarUrl;
     private String estadoCuenta;
+    private boolean evaluacionInicialCompletada;
     private Integer edad;
     private Instant createdAt;
 
@@ -32,6 +33,7 @@ public class UserResponse {
         dto.setEmailVerified(user.isEmailVerificado());
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setEstadoCuenta(user.getEstadoCuenta());
+        dto.setEvaluacionInicialCompletada(user.isEvaluacionInicialCompletada());
         dto.setEdad(user.getEdad());
         dto.setCreatedAt(user.getCreatedAt());
         if (user.getIdentities() != null) {
@@ -104,6 +106,14 @@ public class UserResponse {
 
     public void setEstadoCuenta(String estadoCuenta) {
         this.estadoCuenta = estadoCuenta;
+    }
+
+    public boolean isEvaluacionInicialCompletada() {
+        return evaluacionInicialCompletada;
+    }
+
+    public void setEvaluacionInicialCompletada(boolean evaluacionInicialCompletada) {
+        this.evaluacionInicialCompletada = evaluacionInicialCompletada;
     }
 
     public Integer getEdad() {

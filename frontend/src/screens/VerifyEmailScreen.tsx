@@ -31,8 +31,20 @@ export const VerifyEmailScreen: React.FC<VerifyEmailScreenProps> = ({ navigation
   const isDesktop = width >= 768;
   const isWeb = Platform.OS === 'web';
 
-  const initialEmail = route?.params?.email || '';
-  const initialToken = route?.params?.token || '';
+  const getWebQueryParam = (param: string): string => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        return searchParams.get(param) || '';
+      } catch (e) {
+        return '';
+      }
+    }
+    return '';
+  };
+
+  const initialEmail = route?.params?.email || getWebQueryParam('email') || '';
+  const initialToken = route?.params?.token || getWebQueryParam('token') || getWebQueryParam('code') || '';
 
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState(initialToken);
@@ -42,6 +54,13 @@ export const VerifyEmailScreen: React.FC<VerifyEmailScreenProps> = ({ navigation
   const [isResending, setIsResending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    const activeToken = route?.params?.token || getWebQueryParam('token') || getWebQueryParam('code');
+    const activeEmail = route?.params?.email || getWebQueryParam('email');
+    if (activeEmail && !email) setEmail(activeEmail);
+    if (activeToken && !code) setCode(activeToken);
+  }, [route?.params?.token, route?.params?.email]);
 
   useEffect(() => {
     if (initialToken) {

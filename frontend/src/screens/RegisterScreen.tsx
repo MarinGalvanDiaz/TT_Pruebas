@@ -80,18 +80,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     clearError();
     if (!validate()) return;
 
-    // Detectar adolescente menor de 18 años -> Desviar a Pantalla 03 de Tutor
-    if (selectedRole === 'ADOLESCENTES') {
-      const numAge = parseInt(age, 10);
-      if (!isNaN(numAge) && numAge < 18) {
-        navigation.navigate('AdolescentBlocked', {
-          nombre: name.trim(),
-          edad: numAge,
-          email: email.trim(),
-        });
-        return;
-      }
-    }
+    const numAge = parseInt(age, 10);
+    const isAdolescent = selectedRole === 'ADOLESCENTES' && !isNaN(numAge) && numAge < 18;
 
     const success = await register({
       name: name.trim(),
@@ -99,10 +89,19 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       email: email.trim(),
       password,
       role: selectedRole,
+      edad: !isNaN(numAge) ? numAge : undefined,
     });
 
     if (success) {
-      navigation.navigate('VerifyEmail', { email: email.trim() });
+      if (isAdolescent) {
+        navigation.navigate('AdolescentBlocked', {
+          nombre: name.trim(),
+          edad: numAge,
+          email: email.trim(),
+        });
+      } else {
+        navigation.navigate('VerifyEmail', { email: email.trim() });
+      }
     }
   };
 
