@@ -181,6 +181,8 @@ CREATE TABLE cuestionarios_adolescente (
     derse_f2 INTEGER,
     derse_f3 INTEGER,
     derse_f4 INTEGER,
+    instrumento_actual INTEGER NOT NULL DEFAULT 0,
+    pregunta_actual INTEGER NOT NULL DEFAULT 0,
     estado_evaluacion VARCHAR(50) NOT NULL DEFAULT 'COMPLETADO'
         CHECK (estado_evaluacion IN ('COMPLETADO', 'ALERTA_CRITICA', 'EN_PROGRESO')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -1,6 +1,7 @@
 package com.liberate.auth.controller;
 
 import com.liberate.auth.dto.questionnaire.QuestionnaireBatteryResponse;
+import com.liberate.auth.dto.questionnaire.QuestionnaireProgressResponse;
 import com.liberate.auth.dto.questionnaire.QuestionnaireResultResponse;
 import com.liberate.auth.dto.questionnaire.SubmitQuestionnaireRequest;
 import com.liberate.auth.dto.response.ApiResponse;
@@ -34,6 +35,27 @@ public class QuestionnaireController {
         }
         boolean completed = questionnaireService.hasCompletedInitialQuestionnaire(userPrincipal.getId());
         return ResponseEntity.ok(Map.of("completed", completed));
+    }
+
+    @GetMapping("/progress")
+    public ResponseEntity<ApiResponse<QuestionnaireProgressResponse>> getProgress(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Sesión no iniciada", "UNAUTHORIZED"));
+        }
+        QuestionnaireProgressResponse progress = questionnaireService.getProgress(userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.ok("Progreso recuperado", progress));
+    }
+
+    @RequestMapping(value = "/initial/progress", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ResponseEntity<ApiResponse<QuestionnaireProgressResponse>> saveProgress(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody SubmitQuestionnaireRequest request) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Debes iniciar sesión para guardar tu progreso", "UNAUTHORIZED"));
+        }
+        QuestionnaireProgressResponse saved = questionnaireService.saveProgress(userPrincipal.getId(), request);
+        return ResponseEntity.ok(ApiResponse.ok("Progreso guardado automáticamente", saved));
     }
 
     @PostMapping("/initial/submit")

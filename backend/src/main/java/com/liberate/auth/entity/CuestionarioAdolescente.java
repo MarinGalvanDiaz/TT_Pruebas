@@ -63,6 +63,12 @@ public class CuestionarioAdolescente {
     @Column(name = "derse_f4")
     private Integer derseF4;
 
+    @Column(name = "instrumento_actual")
+    private Integer instrumentoActual = 0;
+
+    @Column(name = "pregunta_actual")
+    private Integer preguntaActual = 0;
+
     @Column(name = "estado_evaluacion", length = 50, nullable = false)
     private String estadoEvaluacion = "COMPLETADO";
 
@@ -212,6 +218,22 @@ public class CuestionarioAdolescente {
 
     public void setDerseF4(Integer derseF4) {
         this.derseF4 = derseF4;
+    }
+
+    public Integer getInstrumentoActual() {
+        return instrumentoActual != null ? instrumentoActual : 0;
+    }
+
+    public void setInstrumentoActual(Integer instrumentoActual) {
+        this.instrumentoActual = instrumentoActual != null ? instrumentoActual : 0;
+    }
+
+    public Integer getPreguntaActual() {
+        return preguntaActual != null ? preguntaActual : 0;
+    }
+
+    public void setPreguntaActual(Integer preguntaActual) {
+        this.preguntaActual = preguntaActual != null ? preguntaActual : 0;
     }
 
     public String getEstadoEvaluacion() {

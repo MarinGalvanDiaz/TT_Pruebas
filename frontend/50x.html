@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Libérate • Nuestros sistemas están tomando un respiro</title>
+  <style>
+    :root {
+      --bg: #fbf9f5;
+      --surface: #ffffff;
+      --primary: #635979;
+      --primary-container: #e9ddff;
+      --secondary: #326578;
+      --secondary-container: #b5e7fe;
+      --tertiary: #4a654e;
+      --tertiary-container: #b4d2b6;
+      --text: #1b1c1a;
+      --muted: #48464c;
+      --border: #cbc5cf;
+      --error-bg: #ffdad6;
+      --error-text: #93000a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--surface);
+      max-width: 560px;
+      width: 100%;
+      border-radius: 24px;
+      padding: 36px 28px;
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 32px rgba(99, 89, 121, 0.08);
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--secondary-container);
+      color: #001f29;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+    .icon-circle {
+      width: 76px;
+      height: 76px;
+      border-radius: 38px;
+      background: var(--primary-container);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 18px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    p.lead {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+    .pili-box {
+      background: #f5f3ef;
+      border-radius: 16px;
+      padding: 14px 16px;
+      text-align: left;
+      margin-bottom: 24px;
+      border-left: 4px solid var(--primary);
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .pili-box strong {
+      color: var(--primary);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 13px 22px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+    .emergency-box {
+      background: var(--error-bg);
+      color: var(--error-text);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .emergency-box h2 {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .hotlines {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .hotline-pill {
+      background: rgba(255, 255, 255, 0.75);
+      padding: 8px 10px;
+      border-radius: 10px;
+      color: var(--error-text);
+      text-decoration: none;
+      font-weight: 700;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">Mantenimiento Temporal • Error 502 / 503</span>
+    <div class="icon-circle">🌿</div>
+    <h1>Nuestros sistemas están tomando un respiro</h1>
+    <p class="lead">
+      El servidor de <strong>Libérate</strong> se está reiniciando o actualizando en este momento.
+      Tus respuestas y tu progreso están resguardados de forma segura.
+    </p>
+    <div class="pili-box">
+      <strong>✨ Pili te acompaña</strong>
+      Mientras reconectamos, inhala profundamente durante 4 segundos y exhala suavemente en 8 segundos. Estaremos listos en unos instantes.
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="window.location.reload()">Reintentar conexión</button>
+      <a class="btn btn-secondary" href="/">Ir al Inicio</a>
+    </div>
+    <div class="emergency-box">
+      <h2>🚨 ¿Necesitas apoyo emocional urgente 24/7?</h2>
+      <p>Estas líneas de atención gratuita están disponibles en todo momento:</p>
+      <div class="hotlines">
+        <a class="hotline-pill" href="tel:8009112000">📞 Línea de la Vida: 800 911 2000</a>
+        <a class="hotline-pill" href="tel:5552598121">📞 SAPTEL: 55 5259 8121</a>
+        <a class="hotline-pill" href="tel:911">🚨 Emergencias: 911</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

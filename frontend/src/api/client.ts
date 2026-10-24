@@ -1,15 +1,14 @@
 import axios, {
   AxiosInstance,
-  AxiosRequestConfig,
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
-import { API_BASE_URL, Endpoints } from './endpoints';
+import { Endpoints } from './endpoints';
 import { SecureTokenStorage } from '../services/secureStore';
 import { AuthResponse } from '../types/auth.types';
 
-// In-memory store for Access Token (short-lived)
-let memoryAccessToken: string | null = null;
+// Initialize from sessionStorage on web so page reloads keep the active JWT immediately
+let memoryAccessToken: string | null = SecureTokenStorage.getAccessTokenSync();
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
@@ -29,9 +28,13 @@ const processQueue = (error: any, token: string | null = null) => {
 
 export const setAuthToken = (token: string | null) => {
   memoryAccessToken = token;
+  SecureTokenStorage.saveAccessTokenSync(token);
 };
 
 export const getAuthToken = (): string | null => {
+  if (!memoryAccessToken) {
+    memoryAccessToken = SecureTokenStorage.getAccessTokenSync();
+  }
   return memoryAccessToken;
 };
 
@@ -54,8 +57,9 @@ apiClient.interceptors.request.use(
     if (config.url && config.url.includes('/api/api/')) {
       config.url = config.url.replace(/\/api\/api\//g, '/api/');
     }
-    if (memoryAccessToken && config.headers) {
-      config.headers.Authorization = `Bearer ${memoryAccessToken}`;
+    const activeToken = getAuthToken();
+    if (activeToken && config.headers) {
+      config.headers.Authorization = `Bearer ${activeToken}`;
     }
     return config;
   },
@@ -75,7 +79,7 @@ apiClient.interceptors.response.use(
       originalRequest?.url?.includes('/auth/google') ||
       originalRequest?.url?.includes('/auth/refresh');
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         // Queue concurrent requests while token is being refreshed
         return new Promise((resolve, reject) => {
@@ -128,4 +132,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-

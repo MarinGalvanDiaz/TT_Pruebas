@@ -32,10 +32,10 @@ RUN rm -rf /etc/nginx/conf.d/default.conf
 # Copy custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy exported static files from builder stage
+# Copy exported static files and custom Serene Support error page
 COPY --from=builder /app/dist /usr/share/nginx/html
+COPY 50x.html /usr/share/nginx/html/50x.html
 
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
-

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,8 +18,11 @@ import {
   QuestionnaireBattery,
   QuestionnaireItem,
   QuestionnaireOption,
+  SubmitQuestionnairePayload,
 } from '../types/questionnaire.types';
+import { useAuth } from '../context/AuthContext';
 import EmergencyDirectoryModal from '../components/modules/EmergencyDirectoryModal';
+import { InlineErrorView, ErrorType } from './ErrorScreen';
 
 interface Props {
   navigation: any;
@@ -55,13 +58,20 @@ const INSTRUMENT_METADATA: Record<
   },
 };
 
+type SaveState = 'idle' | 'saving' | 'saved' | 'local_only';
+
 export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
   const isWeb = Platform.OS === 'web';
+  const { user } = useAuth();
+  const userKey = user?.id || user?.email || 'current';
 
   const [battery, setBattery] = useState<QuestionnaireBattery | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<{ type: ErrorType; message: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showSOSModal, setShowSOSModal] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [restoredNotice, setRestoredNotice] = useState(false);
 
   // Navegación de instrumentos y preguntas
   const [currentInstrumentIndex, setCurrentInstrumentIndex] = useState(0);
@@ -73,31 +83,175 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
   const [ebisAnswers, setEbisAnswers] = useState<Record<number, number>>({});
   const [derseAnswers, setDerseAnswers] = useState<Record<number, number>>({});
 
-  useEffect(() => {
-    loadBattery();
-  }, []);
+  const saveSeqRef = useRef(0);
 
-  const loadBattery = async () => {
+  useEffect(() => {
+    loadBatteryAndProgress();
+  }, [userKey]);
+
+  const countAnswers = (p?: {
+    cmasr2Answers?: Record<number, number>;
+    baiyAnswers?: Record<number, number>;
+    ebisAnswers?: Record<number, number>;
+    derseAnswers?: Record<number, number>;
+  } | null): number => {
+    if (!p) return 0;
+    return (
+      Object.keys(p.cmasr2Answers || {}).length +
+      Object.keys(p.baiyAnswers || {}).length +
+      Object.keys(p.ebisAnswers || {}).length +
+      Object.keys(p.derseAnswers || {}).length
+    );
+  };
+
+  const loadBatteryAndProgress = async () => {
     try {
       setLoading(true);
-      const data = await QuestionnaireService.getInitialBattery();
-      setBattery(data);
+      setLoadError(null);
+
+      const [batteryData, remoteProgress] = await Promise.all([
+        QuestionnaireService.getInitialBattery(),
+        QuestionnaireService.getProgress(),
+      ]);
+
+      setBattery(batteryData);
+
+      const localDraft = QuestionnaireService.getLocalDraft(userKey);
+      const remoteCount = countAnswers(remoteProgress);
+      const localCount = countAnswers(localDraft);
+
+      // Combinar el progreso del servidor y el respaldo local para no perder ni una sola respuesta
+      const mergedCmasr2 = {
+        ...(remoteProgress?.cmasr2Answers || {}),
+        ...(localDraft?.cmasr2Answers || {}),
+      };
+      const mergedBaiy = {
+        ...(remoteProgress?.baiyAnswers || {}),
+        ...(localDraft?.baiyAnswers || {}),
+      };
+      const mergedEbis = {
+        ...(remoteProgress?.ebisAnswers || {}),
+        ...(localDraft?.ebisAnswers || {}),
+      };
+      const mergedDerse = {
+        ...(remoteProgress?.derseAnswers || {}),
+        ...(localDraft?.derseAnswers || {}),
+      };
+
+      const totalMerged =
+        Object.keys(mergedCmasr2).length +
+        Object.keys(mergedBaiy).length +
+        Object.keys(mergedEbis).length +
+        Object.keys(mergedDerse).length;
+
+      if (totalMerged > 0) {
+        setCmasr2Answers(mergedCmasr2);
+        setBaiyAnswers(mergedBaiy);
+        setEbisAnswers(mergedEbis);
+        setDerseAnswers(mergedDerse);
+
+        // Elegir la posición más reciente entre el borrador local y la base de datos
+        const preferredSource =
+          localCount > remoteCount ? localDraft : remoteProgress || localDraft;
+
+        const targetInst = Math.max(
+          0,
+          Math.min(3, preferredSource?.currentInstrumentIndex ?? 0)
+        );
+        const instLists = [
+          batteryData.cmasr2 || [],
+          batteryData.baiy || [],
+          batteryData.ebis || [],
+          batteryData.derse || [],
+        ];
+        const maxQ = Math.max(0, (instLists[targetInst]?.length || 1) - 1);
+        const targetQ = Math.max(
+          0,
+          Math.min(maxQ, preferredSource?.currentQuestionIndex ?? 0)
+        );
+
+        setCurrentInstrumentIndex(targetInst);
+        setCurrentQuestionIndex(targetQ);
+        setRestoredNotice(true);
+        setSaveState('saved');
+      }
     } catch (err: any) {
-      Alert.alert(
-        'Error',
-        'No se pudieron cargar los cuestionarios iniciales. Revisa tu conexión.'
-      );
+      const status = err?.response?.status;
+      if (status === 401) {
+        setLoadError({
+          type: '401',
+          message: 'Tu sesión expiró. Por favor inicia sesión para continuar con tu evaluación.',
+        });
+      } else if (!err?.response) {
+        setLoadError({
+          type: 'NETWORK',
+          message: 'No se pudo conectar con el servidor. Verifica tu conexión a internet.',
+        });
+      } else {
+        setLoadError({
+          type: '500',
+          message: 'Ocurrió un problema temporal al cargar los cuestionarios iniciales.',
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading || !battery) {
+  /**
+   * Persiste automáticamente las respuestas y la pregunta actual tanto en almacenamiento local
+   * como en la base de datos PostgreSQL del backend.
+   */
+  const persistProgress = async (override: Partial<SubmitQuestionnairePayload>) => {
+    const payload: SubmitQuestionnairePayload = {
+      cmasr2Answers: override.cmasr2Answers ?? cmasr2Answers,
+      baiyAnswers: override.baiyAnswers ?? baiyAnswers,
+      ebisAnswers: override.ebisAnswers ?? ebisAnswers,
+      derseAnswers: override.derseAnswers ?? derseAnswers,
+      currentInstrumentIndex: override.currentInstrumentIndex ?? currentInstrumentIndex,
+      currentQuestionIndex: override.currentQuestionIndex ?? currentQuestionIndex,
+    };
+
+    // 1. Guardado instantáneo en localStorage / memoria (protege ante F5 inmediato)
+    QuestionnaireService.saveLocalDraft(userKey, payload);
+    const seq = ++saveSeqRef.current;
+    setSaveState('saving');
+
+    // 2. Sincronización con el backend PostgreSQL
+    try {
+      await QuestionnaireService.saveProgress(payload);
+      if (seq === saveSeqRef.current) {
+        setSaveState('saved');
+      }
+    } catch {
+      if (seq === saveSeqRef.current) {
+        setSaveState('local_only');
+      }
+    }
+  };
+
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Cargando preguntas de bienestar...</Text>
+        <Text style={styles.loadingText}>Cargando preguntas y recuperando tu avance...</Text>
       </View>
+    );
+  }
+
+  if (loadError || !battery) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <View style={styles.mainWrapper}>
+          <InlineErrorView
+            type={loadError?.type || '500'}
+            customMessage={loadError?.message}
+            onRetry={loadBatteryAndProgress}
+            onGoHome={() => navigation.navigate('Home')}
+            onGoLogin={() => navigation.navigate('Login')}
+          />
+        </View>
+      </ScrollView>
     );
   }
 
@@ -130,23 +284,6 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
     }
   };
 
-  const setAnswersMap = (key: InstrumentKey, newMap: Record<number, number>) => {
-    switch (key) {
-      case 'CMASR2':
-        setCmasr2Answers(newMap);
-        break;
-      case 'BAI-Y':
-        setBaiyAnswers(newMap);
-        break;
-      case 'EBIS':
-        setEbisAnswers(newMap);
-        break;
-      case 'DERS-E':
-        setDerseAnswers(newMap);
-        break;
-    }
-  };
-
   const currentList = getInstrumentList(currentInstrumentKey);
   const currentItem = currentList[currentQuestionIndex];
   const currentAnswers = getAnswersMap(currentInstrumentKey);
@@ -154,8 +291,41 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
 
   const handleSelectOption = (value: number) => {
     if (!currentItem) return;
-    const updated = { ...currentAnswers, [currentItem.id]: value };
-    setAnswersMap(currentInstrumentKey, updated);
+    const updatedMap = { ...currentAnswers, [currentItem.id]: value };
+
+    let nextCmasr2 = cmasr2Answers;
+    let nextBaiy = baiyAnswers;
+    let nextEbis = ebisAnswers;
+    let nextDerse = derseAnswers;
+
+    switch (currentInstrumentKey) {
+      case 'CMASR2':
+        setCmasr2Answers(updatedMap);
+        nextCmasr2 = updatedMap;
+        break;
+      case 'BAI-Y':
+        setBaiyAnswers(updatedMap);
+        nextBaiy = updatedMap;
+        break;
+      case 'EBIS':
+        setEbisAnswers(updatedMap);
+        nextEbis = updatedMap;
+        break;
+      case 'DERS-E':
+        setDerseAnswers(updatedMap);
+        nextDerse = updatedMap;
+        break;
+    }
+
+    // Guardar inmediatamente al seleccionar una respuesta
+    persistProgress({
+      cmasr2Answers: nextCmasr2,
+      baiyAnswers: nextBaiy,
+      ebisAnswers: nextEbis,
+      derseAnswers: nextDerse,
+      currentInstrumentIndex,
+      currentQuestionIndex,
+    });
   };
 
   const handleNext = () => {
@@ -164,17 +334,23 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
       return;
     }
 
+    setRestoredNotice(false);
+
     // Regla de Salto Condicional en EBIS:
-    // Si estamos en EBIS y acabamos de responder el reactivo 5 (índice 4):
+    // Si estamos en EBIS y acabamos de responder el reactivo 5 (id === 5):
     // Verificamos si reactivo 4 es 0 y reactivo 5 es 0
     if (currentInstrumentKey === 'EBIS' && currentItem.id === 5) {
       const ebis4 = ebisAnswers[4] ?? 0;
       const ebis5 = selectedValue;
       if (ebis4 === 0 && ebis5 === 0) {
-        // Regla clínica de salto: concluir EBIS temprano y avanzar a DERS-E
         if (currentInstrumentIndex < INSTRUMENT_ORDER.length - 1) {
-          setCurrentInstrumentIndex(currentInstrumentIndex + 1);
+          const nextInst = currentInstrumentIndex + 1;
+          setCurrentInstrumentIndex(nextInst);
           setCurrentQuestionIndex(0);
+          persistProgress({
+            currentInstrumentIndex: nextInst,
+            currentQuestionIndex: 0,
+          });
           return;
         }
       }
@@ -182,12 +358,22 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
 
     // Avance normal a la siguiente pregunta del instrumento actual
     if (currentQuestionIndex < currentList.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const nextQ = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextQ);
+      persistProgress({
+        currentInstrumentIndex,
+        currentQuestionIndex: nextQ,
+      });
     } else {
       // Fin del instrumento actual -> avanzar al siguiente o enviar
       if (currentInstrumentIndex < INSTRUMENT_ORDER.length - 1) {
-        setCurrentInstrumentIndex(currentInstrumentIndex + 1);
+        const nextInst = currentInstrumentIndex + 1;
+        setCurrentInstrumentIndex(nextInst);
         setCurrentQuestionIndex(0);
+        persistProgress({
+          currentInstrumentIndex: nextInst,
+          currentQuestionIndex: 0,
+        });
       } else {
         // Fin de la batería -> Enviar todo
         submitAll();
@@ -196,13 +382,37 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
   };
 
   const handlePrevious = () => {
+    setRestoredNotice(false);
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      const prevQ = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(prevQ);
+      persistProgress({
+        currentInstrumentIndex,
+        currentQuestionIndex: prevQ,
+      });
     } else if (currentInstrumentIndex > 0) {
-      const prevKey = INSTRUMENT_ORDER[currentInstrumentIndex - 1];
+      const prevInst = currentInstrumentIndex - 1;
+      const prevKey = INSTRUMENT_ORDER[prevInst];
       const prevList = getInstrumentList(prevKey);
-      setCurrentInstrumentIndex(currentInstrumentIndex - 1);
-      setCurrentQuestionIndex(prevList.length - 1);
+
+      // Si regresamos desde DERS-E hacia EBIS habiendo aplicado la regla de salto (reactivo 4=0 y 5=0),
+      // regresar al reactivo 5 (índice 4) de EBIS en lugar del reactivo 20
+      let targetPrevQ = prevList.length - 1;
+      if (
+        prevKey === 'EBIS' &&
+        (ebisAnswers[4] ?? 0) === 0 &&
+        (ebisAnswers[5] ?? 0) === 0 &&
+        ebisAnswers[6] === undefined
+      ) {
+        targetPrevQ = 4;
+      }
+
+      setCurrentInstrumentIndex(prevInst);
+      setCurrentQuestionIndex(targetPrevQ);
+      persistProgress({
+        currentInstrumentIndex: prevInst,
+        currentQuestionIndex: targetPrevQ,
+      });
     }
   };
 
@@ -214,7 +424,11 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
         baiyAnswers,
         ebisAnswers,
         derseAnswers,
+        currentInstrumentIndex,
+        currentQuestionIndex,
       });
+
+      QuestionnaireService.clearLocalDraft(userKey);
 
       if (result.hasRedFlag || result.status === 'ALERTA_CRITICA') {
         navigation.replace('CriticalAlert');
@@ -227,19 +441,28 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
       }
     } catch (err: any) {
       Alert.alert(
-        'Error al guardar',
-        err.message || 'No se pudo guardar la evaluación. Intenta de nuevo.'
+        'Error al finalizar',
+        err.message ||
+          'No se pudo enviar la evaluación final, pero tu progreso sigue guardado. Intenta de nuevo.'
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Cálculo de progreso porcentual
+  // Cálculo de progreso porcentual considerando salto condicional en EBIS
+  const ebisSkipped =
+    ebisAnswers[4] === 0 &&
+    ebisAnswers[5] === 0 &&
+    Object.keys(ebisAnswers).length >= 5 &&
+    ebisAnswers[6] === undefined;
+
+  const effectiveEbisTotal = ebisSkipped ? 5 : battery.ebis?.length || 0;
+
   const totalSteps =
     (battery.cmasr2?.length || 0) +
     (battery.baiy?.length || 0) +
-    (battery.ebis?.length || 0) +
+    effectiveEbisTotal +
     (battery.derse?.length || 0);
 
   const answeredSteps =
@@ -248,7 +471,10 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
     Object.keys(ebisAnswers).length +
     Object.keys(derseAnswers).length;
 
-  const progressPercent = Math.min(100, Math.round((answeredSteps / totalSteps) * 100));
+  const progressPercent = Math.min(
+    100,
+    Math.round((answeredSteps / Math.max(1, totalSteps)) * 100)
+  );
 
   const isLastQuestion =
     currentInstrumentIndex === INSTRUMENT_ORDER.length - 1 &&
@@ -270,9 +496,35 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
               </Text>
             </View>
 
-            <View style={styles.confidentialPill}>
-              <MaterialIcons name="lock" size={14} color={Colors.onTertiaryContainer} />
-              <Text style={styles.confidentialText}>100% Confidencial y Seguro</Text>
+            <View style={styles.pillsRow}>
+              <View style={styles.confidentialPill}>
+                <MaterialIcons name="lock" size={14} color={Colors.onTertiaryContainer} />
+                <Text style={styles.confidentialText}>100% Confidencial y Seguro</Text>
+              </View>
+
+              {/* Indicador de autoguardado */}
+              {saveState !== 'idle' && (
+                <View style={styles.autosavePill}>
+                  <MaterialIcons
+                    name={
+                      saveState === 'saving'
+                        ? 'sync'
+                        : saveState === 'saved'
+                        ? 'cloud-done'
+                        : 'save'
+                    }
+                    size={14}
+                    color={Colors.secondary}
+                  />
+                  <Text style={styles.autosaveText}>
+                    {saveState === 'saving'
+                      ? 'Guardando avance...'
+                      : saveState === 'saved'
+                      ? 'Avance guardado automáticamente'
+                      : 'Respaldado en este dispositivo'}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Barra de progreso visual */}
@@ -280,6 +532,19 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
               <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
             </View>
           </View>
+
+          {/* Aviso cuando se restaura la sesión al actualizar la página */}
+          {restoredNotice && (
+            <View style={styles.restoredBanner}>
+              <MaterialIcons name="restore" size={18} color={Colors.onSecondaryContainer} />
+              <Text style={styles.restoredBannerText}>
+                Recuperamos tus respuestas anteriores para que continúes exactamente donde te quedaste.
+              </Text>
+              <TouchableOpacity onPress={() => setRestoredNotice(false)}>
+                <MaterialIcons name="close" size={18} color={Colors.onSecondaryContainer} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Tarjeta de Acompañamiento Emocional */}
           <View style={styles.companionCard}>
@@ -421,11 +686,11 @@ export const AdolescentQuestionnaireScreen: React.FC<Props> = ({ navigation }) =
               </View>
               <Text style={styles.sidebarTitle}>Pili te acompaña</Text>
               <Text style={styles.sidebarDesc}>
-                “Nombrar lo que sientes no lo hace más difícil, te da espacio para respirar. No hay prisa aquí.”
+                “Nombrar lo que sientes no lo hace más difícil, te da espacio para respirar. Tus respuestas se guardan en cada paso.”
               </Text>
               <View style={styles.secureTag}>
                 <MaterialIcons name="shield" size={16} color={Colors.tertiary} />
-                <Text style={styles.secureTagText}>Espacio seguro de escucha activa</Text>
+                <Text style={styles.secureTagText}>Autoguardado activo por pregunta</Text>
               </View>
             </View>
 
@@ -518,22 +783,58 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
+  pillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   confidentialPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     backgroundColor: Colors.tertiaryContainer,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
     gap: 6,
-    marginBottom: 12,
   },
   confidentialText: {
     ...Typography.labelSm,
     color: Colors.onTertiaryContainer,
     fontWeight: '600',
     fontSize: 11,
+  },
+  autosavePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.secondaryContainer,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    gap: 5,
+  },
+  autosaveText: {
+    ...Typography.labelSm,
+    color: Colors.onSecondaryContainer,
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  restoredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.secondaryContainer,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    gap: 10,
+  },
+  restoredBannerText: {
+    ...Typography.bodySm,
+    color: Colors.onSecondaryContainer,
+    fontWeight: '600',
+    flex: 1,
   },
   progressBarTrack: {
     width: '100%',

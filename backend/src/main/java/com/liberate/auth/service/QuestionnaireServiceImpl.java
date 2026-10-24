@@ -1,9 +1,11 @@
 package com.liberate.auth.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liberate.auth.dto.questionnaire.QuestionnaireBatteryResponse;
 import com.liberate.auth.dto.questionnaire.QuestionnaireItemDto;
+import com.liberate.auth.dto.questionnaire.QuestionnaireProgressResponse;
 import com.liberate.auth.dto.questionnaire.QuestionnaireResultResponse;
 import com.liberate.auth.dto.questionnaire.SubmitQuestionnaireRequest;
 import com.liberate.auth.entity.CuestionarioAdolescente;
@@ -38,7 +40,9 @@ public class QuestionnaireServiceImpl implements QuestionnaireService {
 
     @Override
     public boolean hasCompletedInitialQuestionnaire(String userId) {
-        return cuestionarioRepository.existsByUserId(userId);
+        return cuestionarioRepository.existsByUserIdAndEstadoEvaluacionIn(
+                userId, List.of("COMPLETADO", "ALERTA_CRITICA")
+        );
     }
 
     @Override
@@ -49,6 +53,106 @@ public class QuestionnaireServiceImpl implements QuestionnaireService {
                 buildEbisItems(),
                 buildDerseItems()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuestionnaireProgressResponse getProgress(String userId) {
+        Optional<CuestionarioAdolescente> existingOpt = cuestionarioRepository.findTopByUserIdOrderByCreatedAtDesc(userId);
+        QuestionnaireProgressResponse response = new QuestionnaireProgressResponse();
+
+        if (existingOpt.isEmpty()) {
+            response.setCompleted(false);
+            response.setStatus("SIN_INICIAR");
+            response.setCurrentInstrumentIndex(0);
+            response.setCurrentQuestionIndex(0);
+            return response;
+        }
+
+        CuestionarioAdolescente record = existingOpt.get();
+        String status = record.getEstadoEvaluacion();
+        boolean isCompleted = "COMPLETADO".equals(status) || "ALERTA_CRITICA".equals(status);
+
+        response.setCompleted(isCompleted);
+        response.setStatus(status);
+        response.setCurrentInstrumentIndex(record.getInstrumentoActual());
+        response.setCurrentQuestionIndex(record.getPreguntaActual());
+        response.setCmasr2Answers(parseAnswerMap(record.getCmasr2Respuestas()));
+        response.setBaiyAnswers(parseAnswerMap(record.getBaiyRespuestas()));
+        response.setEbisAnswers(parseAnswerMap(record.getEbisRespuestas()));
+        response.setDerseAnswers(parseAnswerMap(record.getDerseRespuestas()));
+        response.setUpdatedAt(record.getUpdatedAt());
+
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public QuestionnaireProgressResponse saveProgress(String userId, SubmitQuestionnaireRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + userId));
+
+        CuestionarioAdolescente record = cuestionarioRepository.findTopByUserIdOrderByCreatedAtDesc(userId)
+                .orElseGet(() -> {
+                    CuestionarioAdolescente nuevo = new CuestionarioAdolescente();
+                    nuevo.setUser(user);
+                    nuevo.setEstadoEvaluacion("EN_PROGRESO");
+                    return nuevo;
+                });
+
+        // Si ya estaba completado anteriormente pero está re-editando en progreso, mantener o actualizar respuestas
+        if (!"COMPLETADO".equals(record.getEstadoEvaluacion()) && !"ALERTA_CRITICA".equals(record.getEstadoEvaluacion())) {
+            record.setEstadoEvaluacion("EN_PROGRESO");
+        }
+
+        Map<Integer, Integer> cmasr2 = request.getCmasr2Answers() != null ? request.getCmasr2Answers() : parseAnswerMap(record.getCmasr2Respuestas());
+        Map<Integer, Integer> baiy = request.getBaiyAnswers() != null ? request.getBaiyAnswers() : parseAnswerMap(record.getBaiyRespuestas());
+        Map<Integer, Integer> ebis = request.getEbisAnswers() != null ? request.getEbisAnswers() : parseAnswerMap(record.getEbisRespuestas());
+        Map<Integer, Integer> derse = request.getDerseAnswers() != null ? request.getDerseAnswers() : parseAnswerMap(record.getDerseRespuestas());
+
+        try {
+            record.setCmasr2Respuestas(objectMapper.writeValueAsString(cmasr2));
+            record.setBaiyRespuestas(objectMapper.writeValueAsString(baiy));
+            record.setEbisRespuestas(objectMapper.writeValueAsString(ebis));
+            record.setDerseRespuestas(objectMapper.writeValueAsString(derse));
+        } catch (JsonProcessingException e) {
+            logger.error("Error al serializar progreso de respuestas a JSON", e);
+        }
+
+        if (request.getCurrentInstrumentIndex() != null) {
+            record.setInstrumentoActual(Math.max(0, Math.min(3, request.getCurrentInstrumentIndex())));
+        }
+        if (request.getCurrentQuestionIndex() != null) {
+            record.setPreguntaActual(Math.max(0, request.getCurrentQuestionIndex()));
+        }
+
+        record.setUpdatedAt(Instant.now());
+        cuestionarioRepository.save(record);
+
+        QuestionnaireProgressResponse response = new QuestionnaireProgressResponse();
+        response.setCompleted("COMPLETADO".equals(record.getEstadoEvaluacion()) || "ALERTA_CRITICA".equals(record.getEstadoEvaluacion()));
+        response.setStatus(record.getEstadoEvaluacion());
+        response.setCurrentInstrumentIndex(record.getInstrumentoActual());
+        response.setCurrentQuestionIndex(record.getPreguntaActual());
+        response.setCmasr2Answers(cmasr2);
+        response.setBaiyAnswers(baiy);
+        response.setEbisAnswers(ebis);
+        response.setDerseAnswers(derse);
+        response.setUpdatedAt(record.getUpdatedAt());
+
+        return response;
+    }
+
+    private Map<Integer, Integer> parseAnswerMap(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<Map<Integer, Integer>>() {});
+        } catch (Exception e) {
+            logger.warn("No se pudo deserializar el mapa de respuestas: {}", e.getMessage());
+            return Collections.emptyMap();
+        }
     }
 
     @Override
@@ -128,9 +232,14 @@ public class QuestionnaireServiceImpl implements QuestionnaireService {
             else if (f4Items.contains(item)) f4Score += finalVal;
         }
 
-        // 5. Persistir Cuestionario
-        CuestionarioAdolescente record = new CuestionarioAdolescente();
-        record.setUser(user);
+        // 5. Persistir Cuestionario (reutilizando registro EN_PROGRESO si existe)
+        CuestionarioAdolescente record = cuestionarioRepository.findTopByUserIdOrderByCreatedAtDesc(userId)
+                .orElseGet(() -> {
+                    CuestionarioAdolescente nuevo = new CuestionarioAdolescente();
+                    nuevo.setUser(user);
+                    return nuevo;
+                });
+
         try {
             record.setCmasr2Respuestas(objectMapper.writeValueAsString(cmasr2));
             record.setBaiyRespuestas(objectMapper.writeValueAsString(baiy));
@@ -151,6 +260,8 @@ public class QuestionnaireServiceImpl implements QuestionnaireService {
         record.setDerseF2(f2Score);
         record.setDerseF3(f3Score);
         record.setDerseF4(f4Score);
+        record.setInstrumentoActual(3);
+        record.setPreguntaActual(23);
         record.setEstadoEvaluacion(hasRedFlag ? "ALERTA_CRITICA" : "COMPLETADO");
         record.setUpdatedAt(Instant.now());
 
@@ -293,7 +404,6 @@ public class QuestionnaireServiceImpl implements QuestionnaireService {
     }
 
     private List<QuestionnaireItemDto> buildEbisItems() {
-        // Cada ítem de EBIS tiene sus propias opciones clínicas de 0 a 2 puntos
         List<QuestionnaireItemDto> list = new ArrayList<>();
 
         list.add(new QuestionnaireItemDto(1, "EBIS", "Deseo de vivir", "EBIS_OPTIONS",
@@ -335,8 +445,8 @@ public class QuestionnaireServiceImpl implements QuestionnaireService {
 
         list.add(new QuestionnaireItemDto(8, "EBIS", "Actitud hacia los pensamientos suicidas", "EBIS_OPTIONS",
                 List.of(new QuestionnaireItemDto.OptionDto("Los rechazo totalmente", 0),
-                new QuestionnaireItemDto.OptionDto("Sentimientos encontrados (ambivalente)", 1),
-                new QuestionnaireItemDto.OptionDto("Los acepto", 2)), "Planificación", false, false));
+                        new QuestionnaireItemDto.OptionDto("Sentimientos encontrados (ambivalente)", 1),
+                        new QuestionnaireItemDto.OptionDto("Los acepto", 2)), "Planificación", false, false));
 
         list.add(new QuestionnaireItemDto(9, "EBIS", "Control sobre la acción o deseo de suicidio", "EBIS_OPTIONS",
                 List.of(new QuestionnaireItemDto.OptionDto("Tengo control total", 0),
@@ -457,4 +567,3 @@ public class QuestionnaireServiceImpl implements QuestionnaireService {
         return list;
     }
 }
-

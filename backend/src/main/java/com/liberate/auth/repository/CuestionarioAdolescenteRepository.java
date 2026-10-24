@@ -4,6 +4,7 @@ import com.liberate.auth.entity.CuestionarioAdolescente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.Optional;
 
 @Repository
@@ -12,5 +13,6 @@ public interface CuestionarioAdolescenteRepository extends JpaRepository<Cuestio
     Optional<CuestionarioAdolescente> findTopByUserIdOrderByCreatedAtDesc(String userId);
 
     boolean existsByUserId(String userId);
-}
 
+    boolean existsByUserIdAndEstadoEvaluacionIn(String userId, Collection<String> estados);
+}

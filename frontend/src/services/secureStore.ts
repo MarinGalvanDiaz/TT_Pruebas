@@ -12,6 +12,45 @@ let inMemoryStore: Record<string, string | null> = {
 
 export const SecureTokenStorage = {
   /**
+   * Save access token for session persistence across page refreshes on web
+   */
+  saveAccessTokenSync(token: string | null): void {
+    inMemoryStore[ACCESS_TOKEN_KEY] = token;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        if (token) {
+          window.sessionStorage?.setItem(ACCESS_TOKEN_KEY, token);
+        } else {
+          window.sessionStorage?.removeItem(ACCESS_TOKEN_KEY);
+        }
+      } catch {
+        // Ignore storage errors in private browsing
+      }
+    }
+  },
+
+  /**
+   * Retrieve stored access token synchronously (used when browser refreshes)
+   */
+  getAccessTokenSync(): string | null {
+    if (inMemoryStore[ACCESS_TOKEN_KEY]) {
+      return inMemoryStore[ACCESS_TOKEN_KEY];
+    }
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        const stored = window.sessionStorage?.getItem(ACCESS_TOKEN_KEY) || null;
+        if (stored) {
+          inMemoryStore[ACCESS_TOKEN_KEY] = stored;
+        }
+        return stored;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  },
+
+  /**
    * Save refresh token securely
    */
   async saveRefreshToken(token: string): Promise<void> {
@@ -22,8 +61,9 @@ export const SecureTokenStorage = {
         });
       } else {
         inMemoryStore[REFRESH_TOKEN_KEY] = token;
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          window.sessionStorage.setItem(REFRESH_TOKEN_KEY, token);
+        if (typeof window !== 'undefined') {
+          window.sessionStorage?.setItem(REFRESH_TOKEN_KEY, token);
+          window.localStorage?.setItem(REFRESH_TOKEN_KEY, token);
         }
       }
     } catch (error) {
@@ -40,8 +80,12 @@ export const SecureTokenStorage = {
       if (Platform.OS !== 'web') {
         return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
       } else {
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          return window.sessionStorage.getItem(REFRESH_TOKEN_KEY) || inMemoryStore[REFRESH_TOKEN_KEY];
+        if (typeof window !== 'undefined') {
+          return (
+            window.sessionStorage?.getItem(REFRESH_TOKEN_KEY) ||
+            window.localStorage?.getItem(REFRESH_TOKEN_KEY) ||
+            inMemoryStore[REFRESH_TOKEN_KEY]
+          );
         }
         return inMemoryStore[REFRESH_TOKEN_KEY];
       }
@@ -60,8 +104,9 @@ export const SecureTokenStorage = {
         await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
       } else {
         inMemoryStore[REFRESH_TOKEN_KEY] = null;
-        if (typeof window !== 'undefined' && window.sessionStorage) {
-          window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+        if (typeof window !== 'undefined') {
+          window.sessionStorage?.removeItem(REFRESH_TOKEN_KEY);
+          window.localStorage?.removeItem(REFRESH_TOKEN_KEY);
         }
       }
     } catch (error) {
@@ -74,6 +119,7 @@ export const SecureTokenStorage = {
    * Clear all stored authentication tokens
    */
   async clearAll(): Promise<void> {
+    this.saveAccessTokenSync(null);
     await this.removeRefreshToken();
     inMemoryStore = {};
   },

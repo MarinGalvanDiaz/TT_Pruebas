@@ -65,3 +65,4 @@ backend/logs/
 # Typescript
 *.tsbuildinfo
 frontend/*.tsbuildinfo
+docker-compose.yml

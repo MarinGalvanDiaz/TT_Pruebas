@@ -1,5 +1,6 @@
 package com.liberate.auth.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -10,7 +11,14 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -18,18 +26,35 @@ public class EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient;
 
     @Value("${app.mail.from:Libérate <soporte@luminar.top>}")
     private String mailFrom;
 
-    @Value("${app.mail.frontend-url:http://localhost:8081}")
+    @Value("${app.mail.frontend-url:https://luminar.top}")
     private String frontendUrl;
 
     @Value("${spring.mail.username:}")
     private String smtpUsername;
 
-    public EmailService(@Autowired(required = false) JavaMailSender mailSender) {
+    @Value("${app.mail.mailtrap.api-token:}")
+    private String mailtrapApiToken;
+
+    public EmailService(@Autowired(required = false) JavaMailSender mailSender,
+                        ObjectMapper objectMapper) {
         this.mailSender = mailSender;
+        this.objectMapper = objectMapper;
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+    }
+
+    private String getCleanFrontendUrl() {
+        if (frontendUrl == null || frontendUrl.isBlank()) {
+            return "https://luminar.top";
+        }
+        return frontendUrl.trim().replaceAll("/+$", "");
     }
 
     /**
@@ -39,7 +64,7 @@ public class EmailService {
      * @param rawToken Token criptográfico de verificación
      */
     public void sendEmailVerificationEmail(String toEmail, String rawToken) {
-        String verificationUrl = frontendUrl + "/verify-email?token=" + rawToken;
+        String verificationUrl = getCleanFrontendUrl() + "/verify-email?token=" + rawToken;
         String subject = "Libérate - Valida tu cuenta para iniciar sesión";
 
         String htmlContent = buildVerificationEmailTemplate(toEmail, rawToken, verificationUrl);
@@ -55,7 +80,7 @@ public class EmailService {
      * @param rawToken Token de un solo uso para restablecer contraseña
      */
     public void sendPasswordResetEmail(String toEmail, String rawToken) {
-        String resetUrl = frontendUrl + "/reset-password?token=" + rawToken;
+        String resetUrl = getCleanFrontendUrl() + "/reset-password?token=" + rawToken;
         String subject = "Libérate - Restablecimiento de contraseña";
 
         String htmlContent = buildPasswordResetEmailTemplate(toEmail, rawToken, resetUrl);
@@ -68,7 +93,7 @@ public class EmailService {
      * Envía correo de invitación al tutor legal cuando un adolescente menor de edad intenta registrarse.
      */
     public void sendTutorInvitationEmail(String tutorEmail, String rawToken, String adolescentName) {
-        String confirmUrl = frontendUrl + "/tutor-confirm?token=" + rawToken;
+        String confirmUrl = getCleanFrontendUrl() + "/tutor-confirm?token=" + rawToken;
         String subject = "Libérate - Solicitud de consentimiento de tutor para " + adolescentName;
 
         String htmlContent = buildTutorInvitationEmailTemplate(tutorEmail, rawToken, adolescentName, confirmUrl);
@@ -81,7 +106,7 @@ public class EmailService {
      * Envía correo al adolescente informando que su tutor completó el proceso y su cuenta está desbloqueada.
      */
     public void sendAdolescentUnlockedEmail(String adolescentEmail, String adolescentName) {
-        String loginUrl = frontendUrl + "/login";
+        String loginUrl = getCleanFrontendUrl() + "/login";
         String subject = "Libérate - ¡Tu cuenta ha sido autorizada y desbloqueada!";
 
         String htmlContent = buildAdolescentUnlockedEmailTemplate(adolescentEmail, adolescentName, loginUrl);
@@ -95,7 +120,7 @@ public class EmailService {
      * y proporcionándole un enlace seguro para establecer su contraseña personal.
      */
     public void sendTutorAccountCreatedEmail(String tutorEmail, String rawToken, String tutorName, String adolescentName) {
-        String resetUrl = frontendUrl + "/reset-password?token=" + rawToken;
+        String resetUrl = getCleanFrontendUrl() + "/reset-password?token=" + rawToken;
         String subject = "Libérate - Cuenta de tutor creada: Establece tu contraseña";
         String htmlContent = buildTutorAccountCreatedEmailTemplate(tutorEmail, rawToken, tutorName, adolescentName, resetUrl);
 
@@ -126,35 +151,99 @@ public class EmailService {
         sendHtmlEmail("soporte@luminar.top", subject, htmlContent);
     }
 
+    private boolean isConfiguredValue(String value) {
+        return value != null
+                && !value.isBlank()
+                && !value.contains("tu-mailtrap")
+                && !value.contains("tu_username")
+                && !value.contains("tu_password")
+                && !value.contains("sandboxXXX");
+    }
+
     /**
-     * Método centralizado para el envío de correos vía Mailtrap SMTP (JavaMailSender).
+     * Método centralizado para el envío de correos vía Mailtrap SMTP (JavaMailSender)
+     * con respaldo automático vía Mailtrap HTTP API (puerto 443) para servidores VPS/Debian.
      */
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
-        if (mailSender == null || smtpUsername == null || smtpUsername.isBlank() || smtpUsername.contains("tu-mailtrap") || smtpUsername.contains("sandboxXXX")) {
-            logger.warn("[EMAIL SERVICE] Servidor SMTP con Mailtrap no configurado en .env. Modo Simulación activo.");
+        boolean hasSmtp = mailSender != null && isConfiguredValue(smtpUsername);
+        boolean hasHttpToken = isConfiguredValue(mailtrapApiToken);
+
+        if (!hasSmtp && !hasHttpToken) {
+            logger.warn("[EMAIL SERVICE] Servidor Mailtrap (SMTP / API Token) no configurado en variables de entorno (.env). Modo Simulación activo.");
             logger.info("[EMAIL SERVICE SIMULACIÓN] Para: {} | Asunto: {}", to, subject);
             return;
         }
 
+        if (hasSmtp) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(
+                        message,
+                        MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                        StandardCharsets.UTF_8.name()
+                );
+
+                helper.setFrom(mailFrom);
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(htmlBody, true);
+
+                mailSender.send(message);
+                logger.info("[EMAIL SERVICE] Correo enviado exitosamente vía Mailtrap SMTP a: {}", to);
+                return;
+            } catch (MessagingException e) {
+                logger.error("[EMAIL SERVICE ERROR] Falló creación/envío MIME vía SMTP hacia {}: {}", to, e.getMessage());
+            } catch (Exception e) {
+                logger.error("[EMAIL SERVICE ERROR] Error al conectar con servidor SMTP de Mailtrap: {}", e.getMessage());
+            }
+        }
+
+        // Respaldo por API HTTP de Mailtrap (puerto 443 HTTPS, ideal si el proveedor VPS en Debian bloquea puerto 587)
+        if (hasHttpToken) {
+            sendViaMailtrapHttpApi(to, subject, htmlBody);
+        }
+    }
+
+    private void sendViaMailtrapHttpApi(String to, String subject, String htmlBody) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(
-                    message,
-                    MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
-                    StandardCharsets.UTF_8.name()
+            String fromName = "Libérate";
+            String fromEmail = "soporte@luminar.top";
+            if (mailFrom != null && mailFrom.contains("<") && mailFrom.contains(">")) {
+                int start = mailFrom.indexOf('<');
+                int end = mailFrom.indexOf('>');
+                String parsedName = mailFrom.substring(0, start).trim();
+                String parsedEmail = mailFrom.substring(start + 1, end).trim();
+                if (!parsedName.isEmpty()) fromName = parsedName;
+                if (!parsedEmail.isEmpty()) fromEmail = parsedEmail;
+            } else if (mailFrom != null && mailFrom.contains("@")) {
+                fromEmail = mailFrom.trim();
+            }
+
+            Map<String, Object> payload = Map.of(
+                    "from", Map.of("email", fromEmail, "name", fromName),
+                    "to", List.of(Map.of("email", to)),
+                    "subject", subject,
+                    "html", htmlBody
             );
 
-            helper.setFrom(mailFrom);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true); // true = HTML
+            String jsonBody = objectMapper.writeValueAsString(payload);
 
-            mailSender.send(message);
-            logger.info("[EMAIL SERVICE] Correo enviado exitosamente vía Mailtrap SMTP a: {}", to);
-        } catch (MessagingException e) {
-            logger.error("[EMAIL SERVICE ERROR] Falló la creación o envío del mensaje MIME hacia {}: {}", to, e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("[EMAIL SERVICE ERROR] Error inesperado al conectar con el servidor SMTP de Mailtrap: {}", e.getMessage(), e);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://send.api.mailtrap.io/api/send"))
+                    .timeout(Duration.ofSeconds(12))
+                    .header("Authorization", "Bearer " + mailtrapApiToken.trim())
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                logger.info("[EMAIL SERVICE] Correo enviado exitosamente vía Mailtrap HTTP API a: {}", to);
+            } else {
+                logger.error("[EMAIL SERVICE HTTP ERROR] Mailtrap API respondió con estado {}: {}", response.statusCode(), response.body());
+            }
+        } catch (Exception ex) {
+            logger.error("[EMAIL SERVICE HTTP ERROR] Falló el envío por Mailtrap HTTP API hacia {}: {}", to, ex.getMessage());
         }
     }
 
@@ -556,4 +645,3 @@ public class EmailService {
             .replace("{{EMAIL}}", email);
     }
 }
-

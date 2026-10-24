@@ -27,6 +27,7 @@ import TutorSymptomsScreen from '../screens/tutor/TutorSymptomsScreen';
 import TutorCompletionScreen from '../screens/tutor/TutorCompletionScreen';
 import { AdolescentQuestionnaireScreen } from '../screens/AdolescentQuestionnaireScreen';
 import { CriticalAlertScreen } from '../screens/CriticalAlertScreen';
+import { ErrorScreen, NotFoundScreen, ServerErrorScreen } from '../screens/ErrorScreen';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { BorderRadius } from '../theme/spacing';
@@ -57,7 +58,7 @@ const TabNavigator = () => {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Inicio',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View
               style={[
                 styles.iconContainer,
@@ -74,7 +75,7 @@ const TabNavigator = () => {
         component={BreathingScreen}
         options={{
           tabBarLabel: 'Respirar',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View
               style={[
                 styles.iconContainer,
@@ -91,7 +92,7 @@ const TabNavigator = () => {
         component={ProgressScreen}
         options={{
           tabBarLabel: 'Progreso',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, focused }) => (
             <View
               style={[
                 styles.iconContainer,
@@ -107,14 +108,13 @@ const TabNavigator = () => {
   );
 };
 
+const dynamicOrigin =
+  typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://liberate.luminar.top';
+
 const linking: LinkingOptions<any> = {
-  prefixes: [
-    '/',
-    'http://localhost:8081',
-    'http://localhost:19006',
-    'http://localhost:3000',
-    'https://luminar.top',
-  ],
+  prefixes: ['/', dynamicOrigin, 'https://liberate.luminar.top', 'liberate://'],
   config: {
     screens: {
       MainTabs: {
@@ -152,6 +152,11 @@ const linking: LinkingOptions<any> = {
       // Cuestionarios Iniciales para Adolescentes
       AdolescentQuestionnaire: 'questionnaire',
       CriticalAlert: 'critical-alert',
+
+      // Páginas Alternas de Errores Comunes (404, 500, 401, Red)
+      ErrorPage: 'error',
+      ServerError: '500',
+      NotFound: '*',
     },
   },
 };
@@ -161,7 +166,14 @@ export const RootNavigator = () => {
     <NavigationContainer
       linking={linking}
       fallback={
-        <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: Colors.background,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
       }
@@ -201,11 +213,15 @@ export const RootNavigator = () => {
         {/* Cuestionarios Iniciales para Adolescentes */}
         <Stack.Screen name="AdolescentQuestionnaire" component={AdolescentQuestionnaireScreen} />
         <Stack.Screen name="CriticalAlert" component={CriticalAlertScreen} />
+
+        {/* Páginas de Errores Comunes */}
+        <Stack.Screen name="ErrorPage" component={ErrorScreen} />
+        <Stack.Screen name="ServerError" component={ServerErrorScreen} />
+        <Stack.Screen name="NotFound" component={NotFoundScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
 
 const styles = StyleSheet.create({
   tabBar: {

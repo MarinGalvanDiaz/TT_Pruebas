@@ -1,4 +1,19 @@
-export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/+$/, '');
+const resolveDefaultApiUrl = (): string => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    // When running via Expo Web dev server (port 19006) without Nginx proxy, connect to port 8080 on same host
+    if (window.location.port === '19006') {
+      return `${window.location.protocol}//${window.location.hostname}:8080/api`;
+    }
+    // In production / Docker behind Nginx reverse proxy, use relative path
+    return '/api';
+  }
+  return '/api';
+};
+
+export const API_BASE_URL = resolveDefaultApiUrl().replace(/\/+$/, '');
 
 export const Endpoints = {
   auth: {
@@ -46,7 +61,8 @@ export const Endpoints = {
   questionnaires: {
     initial: `${API_BASE_URL}/questionnaires/initial`,
     status: `${API_BASE_URL}/questionnaires/status`,
+    progress: `${API_BASE_URL}/questionnaires/progress`,
+    saveProgress: `${API_BASE_URL}/questionnaires/initial/progress`,
     submit: `${API_BASE_URL}/questionnaires/initial/submit`,
   },
 } as const;
-
