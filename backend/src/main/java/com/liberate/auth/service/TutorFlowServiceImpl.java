@@ -17,7 +17,6 @@ import com.liberate.auth.repository.SolicitudTutorRepository;
 import com.liberate.auth.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,19 +79,10 @@ public class TutorFlowServiceImpl implements TutorFlowService {
         logger.info("[TUTOR FLOW] Intento de menor registrado: {} ({} años), tutor: {}",
                 intento.getNombreAdolescente(), intento.getEdadAdolescente(), tutorEmail);
 
-        // 2. Si ya existía un usuario registrado con ese email, marcar cuenta como pendiente de tutor
-        if (adolescentEmail != null) {
-            userRepository.findByEmailIgnoreCase(adolescentEmail).ifPresent(user -> {
-                user.setEstadoCuenta("PENDIENTE_DE_TUTOR");
-                userRepository.save(user);
-            });
-        }
-
-        // 3. Generar token criptográfico
+        // 2. Generar token criptográfico y crear solicitud de tutor con expiración de 72 horas
         String rawToken = tokenService.generateRawToken();
         String tokenHash = tokenService.hashToken(rawToken);
 
-        // 4. Crear solicitud de tutor con expiración de 72 horas
         SolicitudTutor solicitud = new SolicitudTutor(
                 tokenHash,
                 tutorEmail,
@@ -102,9 +92,24 @@ public class TutorFlowServiceImpl implements TutorFlowService {
         );
         solicitud.setUltimoReenvioAt(Instant.now());
         solicitud.setReenviosCount(0);
+
+        // 3. Si ya existía un usuario registrado con ese email, vincular correo del tutor y marcar cuenta pendiente
+        if (adolescentEmail != null) {
+            userRepository.findByEmailIgnoreCase(adolescentEmail).ifPresent(user -> {
+                user.setEstadoCuenta("PENDIENTE_DE_TUTOR");
+                user.setEmailTutor(tutorEmail);
+                if (request.getEdadAdolescente() != null) {
+                    user.setEdad(request.getEdadAdolescente());
+                }
+                userRepository.save(user);
+                solicitud.setAdolescenteUsuarioId(user.getId());
+                logger.info("[TUTOR FLOW] Adolescente {} vinculado con tutor {}", user.getEmail(), tutorEmail);
+            });
+        }
+
         solicitudTutorRepository.save(solicitud);
 
-        // 5. Enviar correo al tutor vía Mailtrap SMTP
+        // 4. Enviar correo al tutor
         emailService.sendTutorInvitationEmail(tutorEmail, rawToken, solicitud.getAdolescenteNombre());
 
         TutorFlowStatusResponse response = mapToResponse(solicitud);
@@ -133,7 +138,6 @@ public class TutorFlowServiceImpl implements TutorFlowService {
         solicitud.setUltimoReenvioAt(Instant.now());
         solicitudTutorRepository.save(solicitud);
 
-        // Reenviar correo
         emailService.sendTutorInvitationEmail(solicitud.getEmailTutor(), token, solicitud.getAdolescenteNombre());
 
         TutorFlowStatusResponse response = mapToResponse(solicitud);
@@ -214,9 +218,15 @@ public class TutorFlowServiceImpl implements TutorFlowService {
             solicitud.setAdolescenteNacionalidad(request.getNacionalidad().trim());
         }
 
-        // Calcular edad automáticamente a partir de la fecha de nacimiento
         int calculatedAge = Period.between(request.getFechaNacimiento(), LocalDate.now()).getYears();
         solicitud.setAdolescenteEdad(calculatedAge);
+
+        userRepository.findByEmailIgnoreCase(adolescentEmail).ifPresent(user -> {
+            user.setEmailTutor(solicitud.getEmailTutor());
+            user.setEdad(calculatedAge);
+            userRepository.save(user);
+            solicitud.setAdolescenteUsuarioId(user.getId());
+        });
 
         solicitudTutorRepository.save(solicitud);
 
@@ -235,8 +245,6 @@ public class TutorFlowServiceImpl implements TutorFlowService {
         solicitud.setRespOtroDiagnostico(request.getOtroDiagnostico());
         solicitud.setRespViolencia(request.getViolencia());
 
-        // Lógica de derivación clínica según especificaciones:
-        // 1. Derivación Prioritaria: Situación de violencia = "SI"
         if ("SI".equalsIgnoreCase(request.getViolencia())) {
             solicitud.setEstado("DERIVACION_PRIORITARIA");
             emailService.sendPriorityClinicalAlert(
@@ -245,15 +253,11 @@ public class TutorFlowServiceImpl implements TutorFlowService {
                     solicitud.getAdolescenteNombre(),
                     solicitud.getAdolescenteEdad()
             );
-        }
-        // 2. Derivación General: Fuera de rango de edad (menor a 12 o mayor a 17) o condiciones de exclusión
-        else if ((solicitud.getAdolescenteEdad() != null && (solicitud.getAdolescenteEdad() < 12 || solicitud.getAdolescenteEdad() > 17))
+        } else if ((solicitud.getAdolescenteEdad() != null && (solicitud.getAdolescenteEdad() < 12 || solicitud.getAdolescenteEdad() > 17))
                 || "SI".equalsIgnoreCase(request.getNeurodesarrollo())
                 || "SI".equalsIgnoreCase(request.getAtencionActual())) {
             solicitud.setEstado("DERIVACION_GENERAL");
-        }
-        // 3. Continuidad: Elegible para el paso de síntomas pre-evaluación
-        else {
+        } else {
             solicitud.setEstado("TAMIZAJE_COMPLETADO");
         }
 
@@ -285,20 +289,20 @@ public class TutorFlowServiceImpl implements TutorFlowService {
 
         solicitud.setEstado("FINALIZADO_DESBLOQUEADO");
 
-        // 1. Desbloquear al adolescente en la base de datos si ya tiene usuario registrado
+        // 1. Desbloquear al adolescente en la base de datos y asegurar vinculación con el correo del tutor
         if (solicitud.getAdolescenteEmail() != null) {
             userRepository.findByEmailIgnoreCase(solicitud.getAdolescenteEmail()).ifPresent(user -> {
                 user.setEstadoCuenta("ACTIVA");
                 user.setEmailVerificado(true);
+                user.setEmailTutor(solicitud.getEmailTutor());
                 if (solicitud.getAdolescenteEdad() != null) {
                     user.setEdad(solicitud.getAdolescenteEdad());
                 }
                 userRepository.save(user);
                 solicitud.setAdolescenteUsuarioId(user.getId());
-                logger.info("[TUTOR FLOW] Cuenta de adolescente desbloqueada y marcada como ACTIVA: {}", user.getEmail());
+                logger.info("[TUTOR FLOW] Cuenta de adolescente desbloqueada y vinculada con tutor {}: {}", solicitud.getEmailTutor(), user.getEmail());
             });
 
-            // Enviar correo de notificación al adolescente informando que ya puede iniciar sesión
             emailService.sendAdolescentUnlockedEmail(solicitud.getAdolescenteEmail(), solicitud.getAdolescenteNombre());
         }
 
@@ -337,7 +341,6 @@ public class TutorFlowServiceImpl implements TutorFlowService {
             return saved;
         });
 
-        // Generar token para que el tutor establezca su propia contraseña segura
         passwordResetTokenRepository.deleteByUser(tutorUser);
         String rawResetToken = tokenService.generateRawToken();
         String resetTokenHash = tokenService.hashToken(rawResetToken);
@@ -346,7 +349,6 @@ public class TutorFlowServiceImpl implements TutorFlowService {
         PasswordResetToken resetToken = new PasswordResetToken(resetTokenHash, tutorUser, resetExpiry);
         passwordResetTokenRepository.save(resetToken);
 
-        // Enviar correo de bienvenida y establecimiento de contraseña
         emailService.sendTutorAccountCreatedEmail(
                 tutorUser.getEmail(),
                 rawResetToken,
@@ -365,7 +367,6 @@ public class TutorFlowServiceImpl implements TutorFlowService {
             throw new InvalidTokenException("El token de solicitud no fue proporcionado.");
         }
         String tokenHash = tokenService.hashToken(token.trim());
-        // Buscar por hash primero, o por token directo como respaldo
         return solicitudTutorRepository.findByTokenHash(tokenHash)
                 .or(() -> solicitudTutorRepository.findByTokenHash(token.trim()))
                 .orElseThrow(() -> new InvalidTokenException("La solicitud de tutor no fue encontrada o el token es inválido."));

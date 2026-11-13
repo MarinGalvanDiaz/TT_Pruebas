@@ -1,6 +1,6 @@
 package com.liberate.auth.service;
 
-import jakarta.mail.MessagingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +10,14 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -18,84 +25,75 @@ public class EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     @Value("${app.mail.from:Libérate <soporte@luminar.top>}")
     private String mailFrom;
 
-    @Value("${app.mail.frontend-url:http://localhost:8081}")
+    @Value("${app.mail.frontend-url:https://liberate.luminar.top}")
     private String frontendUrl;
 
     @Value("${spring.mail.username:}")
     private String smtpUsername;
 
+    @Value("${spring.mail.password:}")
+    private String smtpPassword;
+
+    @Value("${app.mail.mailtrap.api-token:}")
+    private String mailtrapApiToken;
+
     public EmailService(@Autowired(required = false) JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    /**
-     * Envía el correo de verificación para validar la cuenta y habilitar el login.
-     *
-     * @param toEmail  Correo de destino
-     * @param rawToken Token criptográfico de verificación
-     */
-    public void sendEmailVerificationEmail(String toEmail, String rawToken) {
-        String verificationUrl = frontendUrl + "/verify-email?token=" + rawToken;
-        String subject = "Libérate - Valida tu cuenta para iniciar sesión";
+    private String cleanFrontendUrl() {
+        if (frontendUrl == null || frontendUrl.isBlank()) {
+            return "https://liberate.luminar.top";
+        }
+        return frontendUrl.replaceAll("/+$", "");
+    }
 
+    public void sendEmailVerificationEmail(String toEmail, String rawToken) {
+        String verificationUrl = cleanFrontendUrl() + "/verify-email?token=" + rawToken;
+        String subject = "Libérate - Valida tu cuenta para iniciar sesión";
         String htmlContent = buildVerificationEmailTemplate(toEmail, rawToken, verificationUrl);
 
         logger.info("[EMAIL SERVICE] Preparando envío de validación de correo a {}. Token: {}", toEmail, rawToken);
         sendHtmlEmail(toEmail, subject, htmlContent);
     }
 
-    /**
-     * Envía el correo de recuperación de contraseña.
-     *
-     * @param toEmail  Correo de destino
-     * @param rawToken Token de un solo uso para restablecer contraseña
-     */
     public void sendPasswordResetEmail(String toEmail, String rawToken) {
-        String resetUrl = frontendUrl + "/reset-password?token=" + rawToken;
+        String resetUrl = cleanFrontendUrl() + "/reset-password?token=" + rawToken;
         String subject = "Libérate - Restablecimiento de contraseña";
-
         String htmlContent = buildPasswordResetEmailTemplate(toEmail, rawToken, resetUrl);
 
         logger.info("[EMAIL SERVICE] Preparando envío de restablecimiento de contraseña a {}. Token: {}", toEmail, rawToken);
         sendHtmlEmail(toEmail, subject, htmlContent);
     }
 
-    /**
-     * Envía correo de invitación al tutor legal cuando un adolescente menor de edad intenta registrarse.
-     */
     public void sendTutorInvitationEmail(String tutorEmail, String rawToken, String adolescentName) {
-        String confirmUrl = frontendUrl + "/tutor-confirm?token=" + rawToken;
+        String confirmUrl = cleanFrontendUrl() + "/tutor-confirm?token=" + rawToken;
         String subject = "Libérate - Solicitud de consentimiento de tutor para " + adolescentName;
-
         String htmlContent = buildTutorInvitationEmailTemplate(tutorEmail, rawToken, adolescentName, confirmUrl);
 
         logger.info("[EMAIL SERVICE] Preparando envío de invitación a tutor {}. Adolescente: {}", tutorEmail, adolescentName);
         sendHtmlEmail(tutorEmail, subject, htmlContent);
     }
 
-    /**
-     * Envía correo al adolescente informando que su tutor completó el proceso y su cuenta está desbloqueada.
-     */
     public void sendAdolescentUnlockedEmail(String adolescentEmail, String adolescentName) {
-        String loginUrl = frontendUrl + "/login";
+        String loginUrl = cleanFrontendUrl() + "/login";
         String subject = "Libérate - ¡Tu cuenta ha sido autorizada y desbloqueada!";
-
         String htmlContent = buildAdolescentUnlockedEmailTemplate(adolescentEmail, adolescentName, loginUrl);
 
         logger.info("[EMAIL SERVICE] Preparando envío de notificación de desbloqueo a adolescente {}", adolescentEmail);
         sendHtmlEmail(adolescentEmail, subject, htmlContent);
     }
 
-    /**
-     * Envía correo al tutor/padre de familia notificándole la creación de su cuenta
-     * y proporcionándole un enlace seguro para establecer su contraseña personal.
-     */
     public void sendTutorAccountCreatedEmail(String tutorEmail, String rawToken, String tutorName, String adolescentName) {
-        String resetUrl = frontendUrl + "/reset-password?token=" + rawToken;
+        String resetUrl = cleanFrontendUrl() + "/reset-password?token=" + rawToken;
         String subject = "Libérate - Cuenta de tutor creada: Establece tu contraseña";
         String htmlContent = buildTutorAccountCreatedEmailTemplate(tutorEmail, rawToken, tutorName, adolescentName, resetUrl);
 
@@ -103,9 +101,6 @@ public class EmailService {
         sendHtmlEmail(tutorEmail, subject, htmlContent);
     }
 
-    /**
-     * Envía el directorio de apoyo y atención psicológica en formato accesible por correo electrónico.
-     */
     public void sendDirectoryEmail(String toEmail, String recipientName) {
         String subject = "Libérate - Directorio de instituciones de apoyo psicológico y emocional";
         String htmlContent = buildDirectoryEmailTemplate(toEmail, recipientName);
@@ -114,9 +109,6 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, htmlContent);
     }
 
-    /**
-     * Envía alerta interna de derivación prioritaria al equipo clínico ante situación de violencia o urgencia.
-     */
     public void sendPriorityClinicalAlert(String tutorEmail, String tutorPhone, String adolescentName, Integer age) {
         String subject = "URGENTE: Derivación Prioritaria detectada en protocolo de tamizaje";
         String htmlContent = buildPriorityClinicalAlertTemplate(tutorEmail, tutorPhone, adolescentName, age);
@@ -127,39 +119,121 @@ public class EmailService {
     }
 
     /**
-     * Método centralizado para el envío de correos vía Mailtrap SMTP (JavaMailSender).
+     * Envía una alerta urgente por correo electrónico al tutor legal cuando se detecta una bandera roja
+     * de riesgo en los cuestionarios iniciales del adolescente vinculado.
      */
-    private void sendHtmlEmail(String to, String subject, String htmlBody) {
-        if (mailSender == null || smtpUsername == null || smtpUsername.isBlank() || smtpUsername.contains("tu-mailtrap") || smtpUsername.contains("sandboxXXX")) {
-            logger.warn("[EMAIL SERVICE] Servidor SMTP con Mailtrap no configurado en .env. Modo Simulación activo.");
-            logger.info("[EMAIL SERVICE SIMULACIÓN] Para: {} | Asunto: {}", to, subject);
+    public void sendAdolescentRiskAlertToTutor(String tutorEmail, String adolescentName) {
+        if (tutorEmail == null || tutorEmail.isBlank()) {
+            logger.warn("[EMAIL SERVICE RISK ALERT] No se encontró correo de tutor para enviar alerta del adolescente {}", adolescentName);
             return;
         }
+        String safeName = (adolescentName != null && !adolescentName.isBlank()) ? adolescentName : "tu adolescente";
+        String subject = "IMPORTANTE: Aviso prioritario de bienestar emocional - " + safeName + " (Libérate)";
+        String htmlContent = buildAdolescentRiskAlertForTutorTemplate(tutorEmail, safeName);
 
+        logger.warn("[EMAIL SERVICE RISK ALERT] Enviando aviso de alerta de riesgo al tutor {} para adolescente {}", tutorEmail, safeName);
+        sendHtmlEmail(tutorEmail, subject, htmlContent);
+    }
+
+    /**
+     * Envía correos vía Mailtrap SMTP y utiliza la API HTTP de Mailtrap (puerto 443) como respaldo
+     * automático si el servidor bloquea puertos SMTP salientes (587/2525).
+     */
+    private void sendHtmlEmail(String to, String subject, String htmlBody) {
+        String resolvedToken = resolveApiToken();
+        boolean smtpConfigured = mailSender != null
+                && smtpUsername != null
+                && !smtpUsername.isBlank()
+                && !smtpUsername.contains("tu-mailtrap")
+                && smtpPassword != null
+                && !smtpPassword.isBlank()
+                && !smtpPassword.contains("tu-mailtrap");
+
+        if (smtpConfigured) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(
+                        message,
+                        MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                        StandardCharsets.UTF_8.name()
+                );
+
+                helper.setFrom(mailFrom);
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(htmlBody, true);
+
+                mailSender.send(message);
+                logger.info("[EMAIL SERVICE] Correo enviado exitosamente vía Mailtrap SMTP a: {}", to);
+                return;
+            } catch (Exception e) {
+                logger.warn("[EMAIL SERVICE] Falló envío SMTP hacia {} ({}). Intentando respaldo vía Mailtrap HTTP API (443)...", to, e.getMessage());
+            }
+        }
+
+        if (resolvedToken != null && !resolvedToken.isBlank()) {
+            if (sendViaMailtrapHttpApi(to, subject, htmlBody, resolvedToken)) {
+                return;
+            }
+        }
+
+        logger.warn("[EMAIL SERVICE SIMULACIÓN] No fue posible enviar por SMTP ni API. Para: {} | Asunto: {}", to, subject);
+    }
+
+    private String resolveApiToken() {
+        if (mailtrapApiToken != null && !mailtrapApiToken.isBlank() && !mailtrapApiToken.contains("tu-mailtrap")) {
+            return mailtrapApiToken.trim();
+        }
+        if (smtpPassword != null && !smtpPassword.isBlank() && !smtpPassword.contains("tu-mailtrap")) {
+            return smtpPassword.trim();
+        }
+        return null;
+    }
+
+    private boolean sendViaMailtrapHttpApi(String to, String subject, String htmlBody, String apiToken) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(
-                    message,
-                    MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
-                    StandardCharsets.UTF_8.name()
+            String fromEmail = "soporte@luminar.top";
+            String fromName = "Libérate";
+            if (mailFrom != null && mailFrom.contains("<") && mailFrom.contains(">")) {
+                fromName = mailFrom.substring(0, mailFrom.indexOf('<')).trim();
+                fromEmail = mailFrom.substring(mailFrom.indexOf('<') + 1, mailFrom.indexOf('>')).trim();
+            } else if (mailFrom != null && mailFrom.contains("@")) {
+                fromEmail = mailFrom.trim();
+            }
+
+            Map<String, Object> payload = Map.of(
+                    "from", Map.of("email", fromEmail, "name", fromName),
+                    "to", List.of(Map.of("email", to)),
+                    "subject", subject,
+                    "html", htmlBody
             );
 
-            helper.setFrom(mailFrom);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true); // true = HTML
+            String jsonPayload = objectMapper.writeValueAsString(payload);
 
-            mailSender.send(message);
-            logger.info("[EMAIL SERVICE] Correo enviado exitosamente vía Mailtrap SMTP a: {}", to);
-        } catch (MessagingException e) {
-            logger.error("[EMAIL SERVICE ERROR] Falló la creación o envío del mensaje MIME hacia {}: {}", to, e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("[EMAIL SERVICE ERROR] Error inesperado al conectar con el servidor SMTP de Mailtrap: {}", e.getMessage(), e);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://send.api.mailtrap.io/api/send"))
+                    .timeout(Duration.ofSeconds(12))
+                    .header("Authorization", "Bearer " + apiToken)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                logger.info("[EMAIL SERVICE] Correo enviado exitosamente vía Mailtrap HTTP API (443) a: {}", to);
+                return true;
+            } else {
+                logger.error("[EMAIL SERVICE ERROR] Mailtrap HTTP API respondió con estado {}: {}", response.statusCode(), response.body());
+                return false;
+            }
+        } catch (Exception ex) {
+            logger.error("[EMAIL SERVICE ERROR] Falló el envío por Mailtrap HTTP API hacia {}: {}", to, ex.getMessage());
+            return false;
         }
     }
 
     // =========================================================================
-    // PLANTILLAS HTML RESPONSIVAS (Sistema Serene Support)
+    // PLANTILLAS HTML RESPONSIVAS (Sistema Serene Support - Proyecto TT-A128)
     // =========================================================================
 
     private String buildVerificationEmailTemplate(String email, String token, String verificationUrl) {
@@ -211,7 +285,7 @@ public class EmailService {
                   </p>
                 </div>
                 <div class="footer">
-                  © 2026 Libérate (luminar.top) • Contacto: soporte@luminar.top
+                  © 2026 Libérate (liberate.luminar.top) • Proyecto TT-A128 • Contacto: soporte@luminar.top
                 </div>
               </div>
             </body>
@@ -273,7 +347,7 @@ public class EmailService {
                   </p>
                 </div>
                 <div class="footer">
-                  © 2026 Libérate (luminar.top) • Contacto: soporte@luminar.top
+                  © 2026 Libérate (liberate.luminar.top) • Proyecto TT-A128 • Contacto: soporte@luminar.top
                 </div>
               </div>
             </body>
@@ -312,7 +386,7 @@ public class EmailService {
               <div class="container">
                 <div class="header">
                   <h1>Libérate</h1>
-                  <p>UNAM · IPN · LABPSIIT · Protocolo PAPIME PE309026</p>
+                  <p>UNAM · IPN · LABPSIIT · Proyecto TT-A128</p>
                 </div>
                 <div class="content">
                   <div class="greeting">Estimada madre, padre o tutor legal:</div>
@@ -339,7 +413,7 @@ public class EmailService {
                   </p>
                 </div>
                 <div class="footer">
-                  © 2026 Libérate (luminar.top) • Contacto ético y soporte: soporte@luminar.top
+                  © 2026 Libérate (liberate.luminar.top) • Contacto ético y soporte: soporte@luminar.top
                 </div>
               </div>
             </body>
@@ -391,7 +465,7 @@ public class EmailService {
                   </div>
                 </div>
                 <div class="footer">
-                  © 2026 Libérate (luminar.top) • Contacto: soporte@luminar.top
+                  © 2026 Libérate (liberate.luminar.top) • Proyecto TT-A128 • Contacto: soporte@luminar.top
                 </div>
               </div>
             </body>
@@ -456,7 +530,7 @@ public class EmailService {
                   </div>
                 </div>
                 <div class="footer">
-                  © 2026 Libérate (luminar.top) • Espacio UNAM / IPN / LABPSIIT
+                  © 2026 Libérate (liberate.luminar.top) • Espacio UNAM / IPN / LABPSIIT • Proyecto TT-A128
                 </div>
               </div>
             </body>
@@ -486,6 +560,83 @@ public class EmailService {
             </body>
             </html>
             """.formatted(adolescentName, age != null ? age : "N/D", tutorEmail, tutorPhone != null ? tutorPhone : "N/D");
+    }
+
+    private String buildAdolescentRiskAlertForTutorTemplate(String tutorEmail, String adolescentName) {
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Aviso Prioritario de Bienestar Emocional</title>
+              <style>
+                body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fbf9f5; color: #2d3748; }
+                .container { max-width: 600px; margin: 30px auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); border: 1px solid #feb2b2; }
+                .header { background: linear-gradient(135deg, #9b2c2c 0%, #742a2a 100%); padding: 32px 28px; text-align: center; color: #ffffff; }
+                .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
+                .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.92; }
+                .content { padding: 32px 28px; }
+                .alert-box { background-color: #fff5f5; border-left: 4px solid #c53030; padding: 16px; border-radius: 8px; margin: 20px 0; font-size: 14px; color: #742a2a; line-height: 1.55; }
+                .directory-box { background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; margin: 22px 0; }
+                .line-item { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #edf2f7; }
+                .line-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+                .line-title { font-size: 15px; font-weight: 700; color: #1a202c; }
+                .line-phone { font-size: 16px; font-weight: 800; color: #9b2c2c; margin: 4px 0; }
+                .line-desc { font-size: 13px; color: #4a5568; }
+                .footer { background-color: #fbf9f5; padding: 22px; text-align: center; font-size: 12px; color: #718096; border-top: 1px solid #edf2f7; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>Aviso Prioritario de Bienestar</h1>
+                  <p>Protocolo de Acompañamiento y Contención Familiar • Proyecto TT-A128</p>
+                </div>
+                <div class="content">
+                  <p style="font-size: 16px; font-weight: 600; color: #1a202c; margin-top: 0;">
+                    Estimada madre, padre o tutor legal:
+                  </p>
+                  <p style="font-size: 15px; line-height: 1.6; color: #4a5568;">
+                    Como parte del compromiso ético de protección y bienestar en <strong>Libérate</strong>, le informamos que durante la evaluación inicial de <strong>{{ADOLESCENT_NAME}}</strong> se identificaron indicadores emocionales que requieren <strong>atención, escucha cercana y acompañamiento profesional prioritario</strong>.
+                  </p>
+                  <div class="alert-box">
+                    <strong>Recomendación inmediata:</strong> Acérquese a {{ADOLESCENT_NAME}} en un ambiente tranquilo, cálido y libre de juicios, bríndele compañía segura y comuníquese con un servicio especializado de apoyo psicológico.
+                  </div>
+                  <div class="directory-box">
+                    <div style="font-size: 15px; font-weight: 700; color: #2d3748; margin-bottom: 14px;">
+                      Líneas de Atención Psicológica e Intervención en Crisis (24/7 y Gratuitas):
+                    </div>
+                    <div class="line-item">
+                      <div class="line-title">Línea de la Vida (Nacional)</div>
+                      <div class="line-phone">📞 800 911 2000</div>
+                      <div class="line-desc">Atención especializada y confidencial las 24 horas, los 365 días del año.</div>
+                    </div>
+                    <div class="line-item">
+                      <div class="line-title">SAPTEL (Cruz Roja / UNAM)</div>
+                      <div class="line-phone">📞 55 5259 8121</div>
+                      <div class="line-desc">Apoyo psicológico e intervención en crisis por teléfono las 24 horas.</div>
+                    </div>
+                    <div class="line-item">
+                      <div class="line-title">Locatel / Atención Psicológica CDMX</div>
+                      <div class="line-phone">📞 *0311 / 55 5658 1111</div>
+                      <div class="line-desc">Orientación psicológica inmediata y canalización oportuna.</div>
+                    </div>
+                    <div class="line-item">
+                      <div class="line-title">Emergencias Nacionales</div>
+                      <div class="line-phone">🚨 911</div>
+                      <div class="line-desc">Para cualquier emergencia que requiera asistencia presencial inmediata.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="footer">
+                  © 2026 Libérate (liberate.luminar.top) • Proyecto TT-A128 • Contacto: soporte@luminar.top
+                </div>
+              </div>
+            </body>
+            </html>
+            """
+            .replace("{{ADOLESCENT_NAME}}", adolescentName);
     }
 
     private String buildTutorAccountCreatedEmailTemplate(String email, String token, String tutorName, String adolescentName, String resetUrl) {
@@ -543,7 +694,7 @@ public class EmailService {
                   </p>
                 </div>
                 <div class="footer">
-                  © 2026 Libérate (luminar.top) • Espacio UNAM / IPN / LABPSIIT
+                  © 2026 Libérate (liberate.luminar.top) • Espacio UNAM / IPN / LABPSIIT • Proyecto TT-A128
                 </div>
               </div>
             </body>
@@ -556,4 +707,3 @@ public class EmailService {
             .replace("{{EMAIL}}", email);
     }
 }
-

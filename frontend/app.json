@@ -2,6 +2,7 @@
   "expo": {
     "name": "Libérate",
     "slug": "liberate-frontend",
+    "scheme": "liberate",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,9 +12,15 @@
       "resizeMode": "contain"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "top.luminar.liberate"
     },
     "android": {
+      "package": "top.luminar.liberate",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#d1c4e9",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -33,6 +40,11 @@
     "plugins": [
       "expo-secure-store",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6e69a652-c5e7-46ab-8c0a-9c66fc1eebf7"
+      }
+    }
   }
 }

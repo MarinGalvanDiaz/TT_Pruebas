@@ -27,6 +27,7 @@ import TutorSymptomsScreen from '../screens/tutor/TutorSymptomsScreen';
 import TutorCompletionScreen from '../screens/tutor/TutorCompletionScreen';
 import { AdolescentQuestionnaireScreen } from '../screens/AdolescentQuestionnaireScreen';
 import { CriticalAlertScreen } from '../screens/CriticalAlertScreen';
+import { ErrorScreen } from '../screens/ErrorScreen';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { BorderRadius } from '../theme/spacing';
@@ -110,10 +111,13 @@ const TabNavigator = () => {
 const linking: LinkingOptions<any> = {
   prefixes: [
     '/',
+    'liberate://',
+    'https://liberate.luminar.top',
+    'http://liberate.luminar.top',
+    'https://luminar.top',
     'http://localhost:8081',
     'http://localhost:19006',
     'http://localhost:3000',
-    'https://luminar.top',
   ],
   config: {
     screens: {
@@ -152,6 +156,10 @@ const linking: LinkingOptions<any> = {
       // Cuestionarios Iniciales para Adolescentes
       AdolescentQuestionnaire: 'questionnaire',
       CriticalAlert: 'critical-alert',
+
+      // Páginas de Error
+      ErrorPage: 'error',
+      NotFound: '*',
     },
   },
 };
@@ -201,6 +209,10 @@ export const RootNavigator = () => {
         {/* Cuestionarios Iniciales para Adolescentes */}
         <Stack.Screen name="AdolescentQuestionnaire" component={AdolescentQuestionnaireScreen} />
         <Stack.Screen name="CriticalAlert" component={CriticalAlertScreen} />
+
+        {/* Páginas alternas para errores comunes */}
+        <Stack.Screen name="ErrorPage" component={ErrorScreen} />
+        <Stack.Screen name="NotFound" component={ErrorScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

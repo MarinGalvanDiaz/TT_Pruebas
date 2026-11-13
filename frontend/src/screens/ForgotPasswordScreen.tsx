@@ -56,13 +56,13 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
   return (
     <View style={styles.outerCanvas}>
       <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-        {!isDesktop && <TopAppBar title="Recuperar contraseña" />}
-
-        {isWeb && (
+        {isWeb ? (
           <WebHeader
             activeScreen="Login"
             onNavigate={(screen) => navigation.navigate(screen)}
           />
+        ) : (
+          <TopAppBar title="Recuperar contraseña" />
         )}
 
         <ScrollView

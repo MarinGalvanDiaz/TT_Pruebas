@@ -56,12 +56,13 @@ export const BreathingScreen: React.FC<BreathingScreenProps> = ({ navigation }) 
   return (
     <View style={styles.outerCanvas}>
       <View style={styles.container}>
-        <TopAppBar title="Respirar - Aire" />
-        {isWeb && (
+        {isWeb ? (
           <WebHeader
             activeScreen="Breathing"
             onNavigate={(screen) => navigation.navigate(screen)}
           />
+        ) : (
+          <TopAppBar title="Respirar - Aire" />
         )}
 
         <View style={styles.content}>

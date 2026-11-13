@@ -25,6 +25,7 @@ export interface UserProfile {
   estadoCuenta?: string;
   evaluacionInicialCompletada?: boolean;
   edad?: number;
+  emailTutor?: string;
   createdAt?: string;
 }
 
@@ -42,6 +43,7 @@ export interface RegisterRequest {
   role: UserRole;
   edad?: number;
   age?: number;
+  emailTutor?: string;
 }
 
 export interface GoogleLoginRequest {
@@ -73,10 +75,9 @@ export interface ResendVerificationRequest {
 export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
-  tokenType: string; // e.g. "Bearer"
+  tokenType: string;
   expiresIn?: number;
   user: UserProfile;
-  // Legacy alias support
   token?: string;
 }
 
@@ -95,4 +96,3 @@ export interface ApiErrorResponse {
   timestamp?: string;
   status?: number;
 }
-

@@ -8,7 +8,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "usuarios", indexes = {
-    @Index(name = "idx_usuarios_email", columnList = "email", unique = true)
+    @Index(name = "idx_usuarios_email", columnList = "email", unique = true),
+    @Index(name = "idx_usuarios_email_tutor", columnList = "email_tutor")
 })
 public class User {
 
@@ -43,6 +44,9 @@ public class User {
 
     @Column(name = "edad")
     private Integer edad;
+
+    @Column(name = "email_tutor", length = 150)
+    private String emailTutor;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -85,7 +89,6 @@ public class User {
         identity.setUser(null);
     }
 
-    // Getters and Setters
     public String getId() {
         return id;
     }
@@ -188,6 +191,14 @@ public class User {
 
     public void setEdad(Integer edad) {
         this.edad = edad;
+    }
+
+    public String getEmailTutor() {
+        return emailTutor;
+    }
+
+    public void setEmailTutor(String emailTutor) {
+        this.emailTutor = emailTutor;
     }
 
     public List<RefreshToken> getRefreshTokens() {

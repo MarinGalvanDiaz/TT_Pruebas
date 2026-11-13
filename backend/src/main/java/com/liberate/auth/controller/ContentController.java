@@ -22,10 +22,10 @@ public class ContentController {
                     "Sí, la privacidad es fundamental. Los registros personales y actividades emocionales se gestionan bajo estrictos protocolos de protección de datos.",
                     "Privacidad"),
             new FaqItem("faq-3", "¿Quiénes respaldan la investigación?",
-                    "Cuenta con la colaboración y respaldo de investigadoras e investigadores de la UNAM, el IPN y el LABPSIIT, gracias al Programa UNAM-PAPIME (PE309026).",
+                    "Cuenta con la colaboración y respaldo de investigadoras e investigadores de la UNAM, el IPN y el LABPSIIT, en el marco del Proyecto TT-A128.",
                     "Institucional"),
             new FaqItem("faq-4", "¿Cómo puedo acceder desde mi celular?",
-                    "Puedes usar esta versión web responsiva directamente en cualquier navegador o descargar la app disponible para iOS en App Store y para Android en Google Play.",
+                    "Puedes usar esta versión web responsiva directamente en cualquier navegador o instalar la aplicación móvil disponible para Android.",
                     "Uso")
     );
 
@@ -43,10 +43,10 @@ public class ContentController {
 
     private static final List<PartnerItem> PARTNERS = List.of(
             new PartnerItem("p-unam", "Universidad Nacional Autónoma de México", "UNAM",
-                    "Facultad de Psicología y Dirección General de Asuntos del Personal Académico (DGAPA)",
+                    "Facultad de Psicología y Colaboración Académica",
                     "https://www.unam.mx"),
             new PartnerItem("p-ipn", "Instituto Politécnico Nacional", "IPN",
-                    "Investigación y Colaboración Tecnológica Interinstitucional",
+                    "Investigación y Desarrollo Tecnológico (Proyecto TT-A128)",
                     "https://www.ipn.mx"),
             new PartnerItem("p-labpsiit", "Laboratorio de Psicología e Innovación Tecnológica", "LABPSIIT",
                     "Desarrollo de Soluciones Digitales en Salud Mental",
@@ -68,4 +68,3 @@ public class ContentController {
         return ResponseEntity.ok(PARTNERS);
     }
 }
-

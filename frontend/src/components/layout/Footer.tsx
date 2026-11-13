@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Linking, useWindowDimensions 
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
-import { BorderRadius } from '../../theme/spacing';
 
 export const Footer: React.FC = () => {
   const { width } = useWindowDimensions();
@@ -13,10 +12,10 @@ export const Footer: React.FC = () => {
     switch (type) {
       case 'privacidad':
       case 'terminos':
-        Linking.openURL('https://liberate.unam.mx/privacidad');
+        Linking.openURL('https://liberate.luminar.top');
         break;
       case 'contacto':
-        Linking.openURL('mailto:contacto@liberate.org?subject=Contacto%20Libérate');
+        Linking.openURL('mailto:soporte@luminar.top?subject=Contacto%20Libérate');
         break;
       case 'facebook':
         Linking.openURL('https://facebook.com/liberate');
@@ -69,9 +68,9 @@ export const Footer: React.FC = () => {
         </View>
       </View>
 
-      {/* Bottom Copyright & PAPIME code */}
+      {/* Bottom Copyright & Project Identifier */}
       <View style={styles.bottomRow}>
-        <Text style={styles.copyright}>© 2023 Proyecto PAPIME PE309026</Text>
+        <Text style={styles.copyright}>© 2026 Libérate • Proyecto TT-A128 • liberate.luminar.top</Text>
       </View>
     </View>
   );
@@ -156,4 +155,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

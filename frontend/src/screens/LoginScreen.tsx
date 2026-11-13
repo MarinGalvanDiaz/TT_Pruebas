@@ -106,15 +106,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.outerCanvas}>
       <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-        {/* Mobile top bar (mobile native / narrow screen) */}
-        {!isDesktop && <TopAppBar title="Libérate" />}
-
-        {/* Web Header for desktop / web browser */}
-        {isWeb && (
+        {isWeb ? (
           <WebHeader
             activeScreen="Login"
             onNavigate={(screen) => navigation.navigate(screen)}
           />
+        ) : (
+          <TopAppBar title="Libérate" />
         )}
 
         <ScrollView

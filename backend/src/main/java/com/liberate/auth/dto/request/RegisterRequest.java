@@ -28,6 +28,9 @@ public class RegisterRequest {
     @JsonAlias({"age"})
     private Integer edad;
 
+    @JsonAlias({"tutorEmail", "parentEmail"})
+    private String emailTutor;
+
     public RegisterRequest() {}
 
     public RegisterRequest(String nombre, String email, String password, UserRole role) {
@@ -56,6 +59,14 @@ public class RegisterRequest {
 
     public void setAge(Integer age) {
         this.edad = age;
+    }
+
+    public String getEmailTutor() {
+        return emailTutor;
+    }
+
+    public void setEmailTutor(String emailTutor) {
+        this.emailTutor = emailTutor;
     }
 
     public String getNombre() {

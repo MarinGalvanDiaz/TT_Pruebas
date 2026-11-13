@@ -13,13 +13,17 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { FloatingInput } from '../../components/common/FloatingInput';
+import { BirthDatePicker } from '../../components/common/BirthDatePicker';
 import { GradientButton } from '../../components/common/GradientButton';
 import { TutorService } from '../../services/tutor.service';
 
 export default function TutorBlockAScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const isWeb = Platform.OS === 'web';
 
   const token = route.params?.token || '';
   const emailTutor = route.params?.emailTutor || '';
@@ -140,9 +144,14 @@ export default function TutorBlockAScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: Colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Datos del Adolescente" />
+      )}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -171,7 +180,7 @@ export default function TutorBlockAScreen() {
 
           <Text style={styles.title}>Información del Adolescente</Text>
           <Text style={styles.subtitle}>
-            UNAM · IPN · LABPSIIT • Protocolo PAPIME PE309026
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
           </Text>
 
           {errorMessage ? (
@@ -192,24 +201,18 @@ export default function TutorBlockAScreen() {
               autoCapitalize="words"
             />
 
-            <View style={styles.birthRow}>
-              <View style={{ flex: 1 }}>
-                <FloatingInput
-                  label="Fecha de nacimiento (AAAA-MM-DD)"
-                  value={fechaNacimiento}
-                  onChangeText={handleDateChange}
-                  keyboardType="default"
-                  maxLength={10}
-                  hint="Ejemplo: 2010-06-15"
-                />
-              </View>
-              {calculatedAge !== null ? (
-                <View style={styles.ageBadge}>
-                  <Text style={styles.ageBadgeNum}>{calculatedAge}</Text>
-                  <Text style={styles.ageBadgeLabel}>años</Text>
-                </View>
-              ) : null}
-            </View>
+            <BirthDatePicker
+              label="Fecha de nacimiento del adolescente (12 a 17 años)"
+              value={fechaNacimiento}
+              minAge={12}
+              maxAge={17}
+              onChange={(dateStr, calcAge) => {
+                setFechaNacimiento(dateStr);
+                setCalculatedAge(calcAge);
+                setErrorMessage(null);
+              }}
+              hint="Selecciona la fecha de nacimiento en el calendario."
+            />
 
             <FloatingInput
               label="Correo electrónico del adolescente"

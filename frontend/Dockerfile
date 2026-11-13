@@ -29,8 +29,9 @@ FROM nginx:alpine AS runner
 # Remove default Nginx website configuration
 RUN rm -rf /etc/nginx/conf.d/default.conf
 
-# Copy custom Nginx configuration
+# Copy custom Nginx configuration and custom 50x error page
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY 50x.html /usr/share/nginx/html/50x.html
 
 # Copy exported static files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -38,4 +39,3 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
-

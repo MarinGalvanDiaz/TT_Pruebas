@@ -71,6 +71,9 @@ public class AuthServiceImpl implements AuthService {
         rateLimiterService.checkRateLimit(rateLimitKey);
 
         String normalizedEmail = request.getEmail().trim().toLowerCase();
+        String normalizedTutorEmail = (request.getEmailTutor() != null && !request.getEmailTutor().isBlank())
+                ? request.getEmailTutor().trim().toLowerCase()
+                : null;
         boolean isUnderageAdolescent = (request.getRole() == UserRole.ADOLESCENTES)
                 && (request.getEdad() != null && request.getEdad() < 18);
 
@@ -85,6 +88,9 @@ public class AuthServiceImpl implements AuthService {
                 if (request.getEdad() != null) {
                     existing.setEdad(request.getEdad());
                 }
+                if (normalizedTutorEmail != null) {
+                    existing.setEmailTutor(normalizedTutorEmail);
+                }
                 savedUser = userRepository.save(existing);
                 logger.info("[AUTH] Cuenta pendiente de tutor actualizada con nueva contraseña: {}", savedUser.getEmail());
             } else {
@@ -96,6 +102,9 @@ public class AuthServiceImpl implements AuthService {
             User user = new User(request.getNombre().trim(), normalizedEmail, passwordHash, request.getRole());
             user.setEmailVerificado(false);
             user.setEdad(request.getEdad());
+            if (normalizedTutorEmail != null) {
+                user.setEmailTutor(normalizedTutorEmail);
+            }
             user.setEstadoCuenta(isUnderageAdolescent ? "PENDIENTE_DE_TUTOR" : "ACTIVA");
 
             AuthIdentity localIdentity = new AuthIdentity(user, AuthProvider.LOCAL, normalizedEmail);
@@ -203,7 +212,6 @@ public class AuthServiceImpl implements AuthService {
         rateLimiterService.checkRateLimit(rateLimitKey);
 
         GoogleUserPayload payload;
-        // Check for mock token in development / test environments
         if (request.getIdToken().startsWith("mock-google-id-token")) {
             payload = new GoogleUserPayload(
                     "google-sub-demo-12345",
@@ -226,7 +234,6 @@ public class AuthServiceImpl implements AuthService {
         if (existingIdentity.isPresent()) {
             user = existingIdentity.get().getUser();
         } else {
-            // Check if user exists by email to link account
             Optional<User> existingUser = userRepository.findByEmailIgnoreCase(normalizedEmail);
             if (existingUser.isPresent()) {
                 user = existingUser.get();
@@ -238,7 +245,6 @@ public class AuthServiceImpl implements AuthService {
                 user = userRepository.save(user);
                 logger.info("Linked existing account with Google identity for user: {}", user.getEmail());
             } else {
-                // Create brand new user
                 UserRole role = request.getRole() != null ? request.getRole() : UserRole.ADOLESCENTES;
                 user = new User(payload.getName(), normalizedEmail, null, role);
                 user.setEmailVerificado(payload.isEmailVerified());
@@ -289,11 +295,9 @@ public class AuthServiceImpl implements AuthService {
 
         User user = oldToken.getUser();
 
-        // Invalidate previous token (Rotation)
         oldToken.setRevoked(true);
         refreshTokenRepository.save(oldToken);
 
-        // Generate new Refresh Token
         String newRawRefreshToken = tokenService.generateRawToken();
         String newRefreshHash = tokenService.hashToken(newRawRefreshToken);
         Instant expiryDate = Instant.now().plusMillis(7 * 24 * 60 * 60 * 1000L);
@@ -321,9 +325,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            // Only generate password reset if user has password (local account)
             if (user.getPasswordHash() != null) {
-                // Delete previous reset tokens for user
                 passwordResetTokenRepository.deleteByUser(user);
 
                 String rawToken = tokenService.generateRawToken();
@@ -337,7 +339,6 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // Always return generic response to prevent user enumeration
         return ApiResponse.ok("Si el correo electrónico está registrado, recibirás un enlace de recuperación en breve.");
     }
 
@@ -360,7 +361,6 @@ public class AuthServiceImpl implements AuthService {
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
 
-        // Revoke all existing sessions for security
         tokenService.revokeAllUserTokens(user);
 
         return ApiResponse.ok("Tu contraseña ha sido actualizada con éxito.");

@@ -14,6 +14,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { FloatingInput } from '../../components/common/FloatingInput';
 import { GradientButton } from '../../components/common/GradientButton';
 import { TutorService } from '../../services/tutor.service';
@@ -93,22 +95,36 @@ export default function TutorConfirmDataScreen() {
     }
   };
 
+  const isWeb = Platform.OS === 'web';
+
   if (initialLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={[Typography.bodyMedium, { marginTop: 12, color: Colors.onSurfaceVariant }]}>
-          Cargando solicitud de tutor...
-        </Text>
+      <View style={{ flex: 1, backgroundColor: Colors.background }}>
+        {isWeb ? (
+          <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+        ) : (
+          <TopAppBar title="Confirmación de Tutor" />
+        )}
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={[Typography.bodyMedium, { marginTop: 12, color: Colors.onSurfaceVariant }]}>
+            Cargando solicitud de tutor...
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: Colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Confirmación de Tutor" />
+      )}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -137,7 +153,7 @@ export default function TutorConfirmDataScreen() {
 
           <Text style={styles.title}>Bienvenido/a al proceso de autorización</Text>
           <Text style={styles.subtitle}>
-            UNAM · IPN · LABPSIIT • Protocolo PAPIME PE309026
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
           </Text>
 
           {/* Email verified badge */}

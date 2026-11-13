@@ -52,11 +52,11 @@ export const PartnersSection: React.FC<PartnersSectionProps> = ({ partners }) =>
         ))}
       </View>
 
-      {/* Programa UNAM-PAPIME Badge / Credit */}
-      <View style={styles.papimeBanner}>
+      {/* Proyecto TT-A128 Badge / Credit */}
+      <View style={styles.projectBanner}>
         <MaterialIcons name="school" size={20} color={Colors.onTertiaryContainer} />
-        <Text style={styles.papimeText}>
-          Investigación realizada gracias al Programa UNAM-PAPIME
+        <Text style={styles.projectText}>
+          Investigación y desarrollo tecnológico • Proyecto TT-A128
         </Text>
       </View>
     </View>
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.8,
   },
-  papimeBanner: {
+  projectBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -165,11 +165,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     maxWidth: '100%',
   },
-  papimeText: {
+  projectText: {
     ...Typography.labelSmBold,
     color: Colors.onTertiaryContainer,
     fontSize: 12,
     textAlign: 'center',
   },
 });
-

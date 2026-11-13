@@ -5,12 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { GradientButton } from '../../components/common/GradientButton';
 import { ClinicalAnswer } from '../../types/tutor.types';
 import { TutorService } from '../../services/tutor.service';
@@ -110,36 +113,44 @@ export default function TutorBlockBScreen() {
     }
   };
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.card}>
-        {/* Stepper indicator: Step 3 of 4 */}
-        <View style={styles.stepperRow}>
-          <View style={[styles.stepDot, styles.stepCompleted]}>
-            <Ionicons name="checkmark" size={16} color="#ffffff" />
-          </View>
-          <View style={[styles.stepLine, styles.stepLineActive]} />
-          <View style={[styles.stepDot, styles.stepCompleted]}>
-            <Ionicons name="checkmark" size={16} color="#ffffff" />
-          </View>
-          <View style={[styles.stepLine, styles.stepLineActive]} />
-          <View style={[styles.stepDot, styles.stepActive]}>
-            <Text style={styles.stepNumActive}>3</Text>
-          </View>
-          <View style={styles.stepLine} />
-          <View style={styles.stepDot}>
-            <Text style={styles.stepNum}>4</Text>
-          </View>
-        </View>
-        <Text style={styles.stepLabel}>Paso 3 de 4 • Bloque B: Tamizaje Clínico</Text>
+  const isWeb = Platform.OS === 'web';
 
-        <Text style={styles.title}>Cuestionario de Salud y Bienestar</Text>
-        <Text style={styles.subtitle}>
-          UNAM · IPN · LABPSIIT • Protocolo PAPIME PE309026
-        </Text>
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Tamizaje Clínico" />
+      )}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.card}>
+          {/* Stepper indicator: Step 3 of 4 */}
+          <View style={styles.stepperRow}>
+            <View style={[styles.stepDot, styles.stepCompleted]}>
+              <Ionicons name="checkmark" size={16} color="#ffffff" />
+            </View>
+            <View style={[styles.stepLine, styles.stepLineActive]} />
+            <View style={[styles.stepDot, styles.stepCompleted]}>
+              <Ionicons name="checkmark" size={16} color="#ffffff" />
+            </View>
+            <View style={[styles.stepLine, styles.stepLineActive]} />
+            <View style={[styles.stepDot, styles.stepActive]}>
+              <Text style={styles.stepNumActive}>3</Text>
+            </View>
+            <View style={styles.stepLine} />
+            <View style={styles.stepDot}>
+              <Text style={styles.stepNum}>4</Text>
+            </View>
+          </View>
+          <Text style={styles.stepLabel}>Paso 3 de 4 • Bloque B: Tamizaje Clínico</Text>
+
+          <Text style={styles.title}>Cuestionario de Salud y Bienestar</Text>
+          <Text style={styles.subtitle}>
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
+          </Text>
 
         <View style={styles.disclaimerBox}>
           <Ionicons name="information-circle-outline" size={18} color={Colors.secondary} style={{ marginRight: 8 }} />
@@ -201,7 +212,8 @@ export default function TutorBlockBScreen() {
           />
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

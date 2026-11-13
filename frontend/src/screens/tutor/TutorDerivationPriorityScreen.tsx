@@ -6,17 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import EmergencyDirectoryModal from '../../components/modules/EmergencyDirectoryModal';
 
 export default function TutorDerivationPriorityScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const isWeb = Platform.OS === 'web';
 
   const emailTutor = route.params?.emailTutor || '';
   const [showModal, setShowModal] = useState(false);
@@ -26,19 +30,25 @@ export default function TutorDerivationPriorityScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.card}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="warning" size={44} color={Colors.error} />
-        </View>
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Atención Prioritaria" />
+      )}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.card}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="warning" size={44} color={Colors.error} />
+          </View>
 
-        <Text style={styles.title}>Esto necesita atención ahora</Text>
-        <Text style={styles.subtitle}>
-          UNAM · IPN · LABPSIIT • Protocolo de Urgencia Clínica
-        </Text>
+          <Text style={styles.title}>Esto necesita atención ahora</Text>
+          <Text style={styles.subtitle}>
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128 • Urgencia Clínica
+          </Text>
 
         <View style={styles.alertBanner}>
           <Ionicons name="alert-circle" size={24} color={Colors.error} style={{ marginRight: 10 }} />
@@ -134,7 +144,8 @@ export default function TutorDerivationPriorityScreen() {
         onClose={() => setShowModal(false)}
         defaultEmail={emailTutor}
       />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

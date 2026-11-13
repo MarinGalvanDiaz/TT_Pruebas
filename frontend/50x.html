@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Libérate - Conectando con el servidor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #fbf9f5;
+      color: #1c1b1f;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #ffffff;
+      max-width: 520px;
+      width: 100%;
+      border-radius: 28px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(99, 89, 121, 0.08);
+      border: 1px solid #e6e1e5;
+    }
+    .badge {
+      display: inline-block;
+      background: #ede7f6;
+      color: #635979;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: 24px;
+      color: #635979;
+      margin-bottom: 12px;
+    }
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #49454f;
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #635979;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 15px;
+      border: none;
+      cursor: pointer;
+    }
+    .crisis {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #f0ece6;
+      font-size: 13px;
+      color: #49454f;
+    }
+    .crisis strong { color: #ba1a1a; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">ESPACIO SEGURO LIBÉRATE</div>
+    <h1>Estamos preparando tu conexión</h1>
+    <p>
+      El servicio se está actualizando o reconectando en este momento. Tus respuestas y tu progreso están protegidos. Por favor intenta recargar en unos segundos.
+    </p>
+    <button class="btn" onclick="window.location.reload()">Reintentar conexión</button>
+    <div class="crisis">
+      ¿Necesitas apoyo inmediato? Llama sin costo a la <strong>Línea de la Vida (800 911 2000)</strong> o a <strong>SAPTEL (55 5259 8121)</strong> las 24 horas.
+    </div>
+  </div>
+</body>
+</html>

@@ -5,12 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { GradientButton } from '../../components/common/GradientButton';
 import { TutorService } from '../../services/tutor.service';
 
@@ -99,11 +102,19 @@ export default function TutorSymptomsScreen() {
     }
   };
 
+  const isWeb = Platform.OS === 'web';
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Evaluación de Síntomas" />
+      )}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
       <View style={styles.card}>
         {/* Stepper indicator: Step 4 of 4 */}
         <View style={styles.stepperRow}>
@@ -197,7 +208,8 @@ export default function TutorSymptomsScreen() {
           />
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

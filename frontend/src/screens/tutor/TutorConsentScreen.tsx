@@ -14,6 +14,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { FloatingInput } from '../../components/common/FloatingInput';
 import { GradientButton } from '../../components/common/GradientButton';
 import EmergencyDirectoryModal from '../../components/modules/EmergencyDirectoryModal';
@@ -92,11 +94,18 @@ export default function TutorConsentScreen() {
     );
   };
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: Colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Consentimiento Informado" />
+      )}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -125,7 +134,7 @@ export default function TutorConsentScreen() {
 
           <Text style={styles.title}>Consentimiento del Tutor Legal</Text>
           <Text style={styles.subtitle}>
-            UNAM · IPN · LABPSIIT • Protocolo de Investigación PAPIME PE309026
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
           </Text>
 
           {/* Consent Text Box */}

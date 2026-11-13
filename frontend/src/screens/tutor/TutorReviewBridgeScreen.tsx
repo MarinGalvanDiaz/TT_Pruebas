@@ -4,16 +4,20 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 
 export default function TutorReviewBridgeScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const isWeb = Platform.OS === 'web';
 
   const token = route.params?.token || '';
   const emailTutor = route.params?.emailTutor || '';
@@ -35,23 +39,30 @@ export default function TutorReviewBridgeScreen() {
   }, [derivacionTipo, token]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.pulseContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Revisión de Solicitud" />
+      )}
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <View style={styles.pulseContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+
+          <Text style={styles.title}>Estamos revisando tu solicitud</Text>
+          <Text style={styles.subtitle}>
+            Evaluando criterios de participación conforme al protocolo clínico UNAM · IPN · LABPSIIT • Proyecto TT-A128.
+          </Text>
+
+          <View style={styles.badgeRow}>
+            <Ionicons name="shield-checkmark" size={18} color={Colors.tertiary} style={{ marginRight: 6 }} />
+            <Text style={styles.badgeText}>Proceso confidencial y seguro</Text>
+          </View>
+
+          <Text style={styles.waitingText}>Por favor no cierres esta ventana, tomará solo un momento...</Text>
         </View>
-
-        <Text style={styles.title}>Estamos revisando tu solicitud</Text>
-        <Text style={styles.subtitle}>
-          Evaluando criterios de participación conforme al protocolo clínico UNAM · IPN · LABPSIIT.
-        </Text>
-
-        <View style={styles.badgeRow}>
-          <Ionicons name="shield-checkmark" size={18} color={Colors.tertiary} style={{ marginRight: 6 }} />
-          <Text style={styles.badgeText}>Proceso confidencial y seguro</Text>
-        </View>
-
-        <Text style={styles.waitingText}>Por favor no cierres esta ventana, tomará solo un momento...</Text>
       </View>
     </View>
   );

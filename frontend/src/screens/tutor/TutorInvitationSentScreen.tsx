@@ -6,12 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { GradientButton } from '../../components/common/GradientButton';
 import EmergencyDirectoryModal from '../../components/modules/EmergencyDirectoryModal';
 import { TutorService } from '../../services/tutor.service';
@@ -81,21 +84,29 @@ export default function TutorInvitationSentScreen() {
     }
   };
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.card}>
-        {/* Success Icon Badge */}
-        <View style={styles.iconCircle}>
-          <Ionicons name="mail-unread-outline" size={40} color={Colors.tertiary} />
-        </View>
+  const isWeb = Platform.OS === 'web';
 
-        <Text style={styles.title}>Listo, ya le avisamos a tu tutor</Text>
-        <Text style={styles.subtitle}>
-          UNAM · IPN · LABPSIIT • Protocolo PAPIME PE309026
-        </Text>
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Invitación Enviada" />
+      )}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.card}>
+          {/* Success Icon Badge */}
+          <View style={styles.iconCircle}>
+            <Ionicons name="mail-unread-outline" size={40} color={Colors.tertiary} />
+          </View>
+
+          <Text style={styles.title}>Listo, ya le avisamos a tu tutor</Text>
+          <Text style={styles.subtitle}>
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
+          </Text>
 
         <View style={styles.emailBox}>
           <Ionicons name="send" size={18} color={Colors.primary} style={{ marginRight: 8 }} />
@@ -175,7 +186,8 @@ export default function TutorInvitationSentScreen() {
         onClose={() => setShowDirectory(false)}
         defaultEmail={emailTutor}
       />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

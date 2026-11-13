@@ -27,6 +27,30 @@ export interface SubmitQuestionnairePayload {
   baiyAnswers: Record<number, number>;
   ebisAnswers: Record<number, number>;
   derseAnswers: Record<number, number>;
+  currentInstrumentIndex?: number;
+  currentQuestionIndex?: number;
+}
+
+export interface QuestionnaireProgress {
+  completed: boolean;
+  status: 'NO_INICIADO' | 'EN_PROGRESO' | 'COMPLETADO' | 'ALERTA_CRITICA';
+  hasRedFlag?: boolean;
+  currentInstrumentIndex: number;
+  currentQuestionIndex: number;
+  cmasr2Answers: Record<number, number>;
+  baiyAnswers: Record<number, number>;
+  ebisAnswers: Record<number, number>;
+  derseAnswers: Record<number, number>;
+  cmasr2Score?: number;
+  cmasr2DefScore?: number;
+  cmasr2IncScore?: number;
+  baiyScore?: number;
+  ebisScore?: number;
+  derseScore?: number;
+  derseF1?: number;
+  derseF2?: number;
+  derseF3?: number;
+  derseF4?: number;
 }
 
 export interface QuestionnaireResult {
@@ -44,4 +68,3 @@ export interface QuestionnaireResult {
   derseF4: number;
   message: string;
 }
-

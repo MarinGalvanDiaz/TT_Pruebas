@@ -56,12 +56,13 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({ navigation }) =>
   return (
     <View style={styles.outerCanvas}>
       <View style={styles.container}>
-        <TopAppBar title="Mi Progreso" />
-        {isWeb && (
+        {isWeb ? (
           <WebHeader
             activeScreen="Progress"
             onNavigate={(screen) => navigation.navigate(screen)}
           />
+        ) : (
+          <TopAppBar title="Mi Progreso" />
         )}
 
         <ScrollView

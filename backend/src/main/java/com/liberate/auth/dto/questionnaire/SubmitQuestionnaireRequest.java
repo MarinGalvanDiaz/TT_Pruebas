@@ -8,6 +8,8 @@ public class SubmitQuestionnaireRequest {
     private Map<Integer, Integer> baiyAnswers;
     private Map<Integer, Integer> ebisAnswers;
     private Map<Integer, Integer> derseAnswers;
+    private Integer currentInstrumentIndex;
+    private Integer currentQuestionIndex;
 
     public SubmitQuestionnaireRequest() {}
 
@@ -42,5 +44,20 @@ public class SubmitQuestionnaireRequest {
     public void setDerseAnswers(Map<Integer, Integer> derseAnswers) {
         this.derseAnswers = derseAnswers;
     }
-}
 
+    public Integer getCurrentInstrumentIndex() {
+        return currentInstrumentIndex;
+    }
+
+    public void setCurrentInstrumentIndex(Integer currentInstrumentIndex) {
+        this.currentInstrumentIndex = currentInstrumentIndex;
+    }
+
+    public Integer getCurrentQuestionIndex() {
+        return currentQuestionIndex;
+    }
+
+    public void setCurrentQuestionIndex(Integer currentQuestionIndex) {
+        this.currentQuestionIndex = currentQuestionIndex;
+    }
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
@@ -8,7 +9,7 @@ import { BorderRadius, Shadows } from '../../theme/spacing';
 
 interface WebHeaderProps {
   activeScreen?: string;
-  onNavigate: (screenName: string) => void;
+  onNavigate?: (screenName: string) => void;
   onNavigateSection?: (sectionId: string) => void;
 }
 
@@ -17,6 +18,7 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
   onNavigate,
   onNavigateSection,
 }) => {
+  const navigation = useNavigation<any>();
   const { user, isAuthenticated, logout } = useAuth();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
@@ -24,8 +26,12 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
   const handleNav = (target: string, isSection = false) => {
     if (isSection && onNavigateSection) {
       onNavigateSection(target);
-    } else {
+      return;
+    }
+    if (onNavigate) {
       onNavigate(target);
+    } else {
+      navigation.navigate(target);
     }
   };
 
@@ -39,7 +45,7 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
           activeOpacity={0.8}
         >
           <View style={styles.brandDot} />
-          <Text style={styles.brandText}>Libérate</Text>
+          <Text style={[styles.brandText, !isDesktop && styles.mobileBrandText]}>Libérate</Text>
         </TouchableOpacity>
 
         {/* Center Navigation Links (Desktop) */}
@@ -55,18 +61,59 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleNav('colaboradores', true)}
-              style={styles.navItem}
+              onPress={() => handleNav('Breathing')}
+              style={[styles.navItem, activeScreen === 'Breathing' && styles.activeNavItem]}
             >
-              <Text style={styles.navText}>Colaboradores</Text>
+              <Text style={[styles.navText, activeScreen === 'Breathing' && styles.activeNavText]}>
+                Respirar
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleNav('faqs', true)}
-              style={styles.navItem}
+              onPress={() => handleNav('Progress')}
+              style={[styles.navItem, activeScreen === 'Progress' && styles.activeNavItem]}
             >
-              <Text style={styles.navText}>Preguntas frecuentes</Text>
+              <Text style={[styles.navText, activeScreen === 'Progress' && styles.activeNavText]}>
+                Progreso
+              </Text>
             </TouchableOpacity>
+
+            {isAuthenticated && user?.role === 'ADOLESCENTES' && (
+              <TouchableOpacity
+                onPress={() => handleNav('AdolescentQuestionnaire')}
+                style={[
+                  styles.navItem,
+                  activeScreen === 'AdolescentQuestionnaire' && styles.activeNavItem,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.navText,
+                    activeScreen === 'AdolescentQuestionnaire' && styles.activeNavText,
+                  ]}
+                >
+                  Evaluación
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {onNavigateSection && (
+              <>
+                <TouchableOpacity
+                  onPress={() => handleNav('colaboradores', true)}
+                  style={styles.navItem}
+                >
+                  <Text style={styles.navText}>Colaboradores</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleNav('faqs', true)}
+                  style={styles.navItem}
+                >
+                  <Text style={styles.navText}>Preguntas frecuentes</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         )}
 
@@ -78,13 +125,14 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
                 onPress={() => handleNav('SessionProfile')}
                 style={[
                   styles.sessionBtn,
+                  !isDesktop && styles.mobileSessionBtn,
                   activeScreen === 'SessionProfile' && styles.activeSessionBtn,
                 ]}
                 activeOpacity={0.8}
               >
-                <MaterialIcons name="account-circle" size={18} color={Colors.primary} />
+                <MaterialIcons name="account-circle" size={17} color={Colors.primary} />
                 <Text style={styles.sessionBtnText} numberOfLines={1}>
-                  {user?.name || 'Mi Sesión'}
+                  {isDesktop ? user?.name || 'Mi Sesión' : user?.name?.split(' ')[0] || 'Sesión'}
                 </Text>
               </TouchableOpacity>
 
@@ -93,9 +141,10 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
                   await logout();
                   handleNav('Login');
                 }}
-                style={styles.logoutBtn}
+                style={[styles.logoutBtn, !isDesktop && styles.mobileLogoutBtn]}
                 activeOpacity={0.8}
               >
+                <MaterialIcons name="logout" size={15} color="#e11d48" />
                 <Text style={styles.logoutBtnText}>Salir</Text>
               </TouchableOpacity>
             </>
@@ -123,7 +172,7 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
         </View>
       </View>
 
-      {/* Pestañas de navegación para versión móvil (100% ancho) */}
+      {/* Pestañas de navegación para versión móvil web (100% ancho) */}
       {!isDesktop && (
         <View style={styles.mobileTabsRow}>
           <TouchableOpacity
@@ -133,7 +182,7 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
           >
             <MaterialIcons
               name="home"
-              size={18}
+              size={17}
               color={activeScreen === 'Home' ? Colors.primary : Colors.onSurfaceVariant}
             />
             <Text
@@ -147,22 +196,73 @@ export const WebHeader: React.FC<WebHeaderProps> = ({
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => handleNav('colaboradores', true)}
-            style={styles.mobileTab}
+            onPress={() => handleNav('Breathing')}
+            style={[styles.mobileTab, activeScreen === 'Breathing' && styles.activeMobileTab]}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="group" size={18} color={Colors.onSurfaceVariant} />
-            <Text style={styles.mobileTabText}>Colaboradores</Text>
+            <MaterialIcons
+              name="air"
+              size={17}
+              color={activeScreen === 'Breathing' ? Colors.primary : Colors.onSurfaceVariant}
+            />
+            <Text
+              style={[
+                styles.mobileTabText,
+                activeScreen === 'Breathing' && styles.activeMobileTabText,
+              ]}
+            >
+              Respirar
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => handleNav('faqs', true)}
-            style={styles.mobileTab}
+            onPress={() => handleNav('Progress')}
+            style={[styles.mobileTab, activeScreen === 'Progress' && styles.activeMobileTab]}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="help-outline" size={18} color={Colors.onSurfaceVariant} />
-            <Text style={styles.mobileTabText}>Preguntas</Text>
+            <MaterialIcons
+              name="analytics"
+              size={17}
+              color={activeScreen === 'Progress' ? Colors.primary : Colors.onSurfaceVariant}
+            />
+            <Text
+              style={[
+                styles.mobileTabText,
+                activeScreen === 'Progress' && styles.activeMobileTabText,
+              ]}
+            >
+              Progreso
+            </Text>
           </TouchableOpacity>
+
+          {isAuthenticated && user?.role === 'ADOLESCENTES' && (
+            <TouchableOpacity
+              onPress={() => handleNav('AdolescentQuestionnaire')}
+              style={[
+                styles.mobileTab,
+                activeScreen === 'AdolescentQuestionnaire' && styles.activeMobileTab,
+              ]}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons
+                name="assignment"
+                size={17}
+                color={
+                  activeScreen === 'AdolescentQuestionnaire'
+                    ? Colors.primary
+                    : Colors.onSurfaceVariant
+                }
+              />
+              <Text
+                style={[
+                  styles.mobileTabText,
+                  activeScreen === 'AdolescentQuestionnaire' && styles.activeMobileTabText,
+                ]}
+              >
+                Evaluación
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -181,23 +281,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     width: '100%',
   },
   desktopInnerWrap: {
     paddingHorizontal: 40,
-    paddingVertical: 16,
+    paddingVertical: 14,
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   brandDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: Colors.primary,
   },
   brandText: {
@@ -207,10 +307,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.3,
   },
+  mobileBrandText: {
+    fontSize: 17,
+  },
   navLinksRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 24,
+    gap: 20,
   },
   navItem: {
     paddingVertical: 6,
@@ -233,11 +336,11 @@ const styles = StyleSheet.create({
   authButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   loginBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
   },
   loginText: {
     ...Typography.labelSmBold,
@@ -249,8 +352,8 @@ const styles = StyleSheet.create({
   },
   registerBtn: {
     backgroundColor: Colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
     borderRadius: BorderRadius.full,
   },
   registerBtnText: {
@@ -262,10 +365,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primaryContainer,
+  },
+  mobileSessionBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
   activeSessionBtn: {
     borderWidth: 1,
@@ -274,16 +381,23 @@ const styles = StyleSheet.create({
   sessionBtnText: {
     ...Typography.labelSmBold,
     color: Colors.primary,
-    fontSize: 13,
-    maxWidth: 120,
+    fontSize: 12,
+    maxWidth: 110,
   },
   logoutBtn: {
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
     borderColor: '#fca5a5',
     backgroundColor: '#fff1f2',
+  },
+  mobileLogoutBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
   logoutBtnText: {
     ...Typography.labelSmBold,
@@ -302,8 +416,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+    gap: 4,
+    paddingVertical: 10,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -314,7 +428,7 @@ const styles = StyleSheet.create({
   mobileTabText: {
     ...Typography.labelSm,
     color: Colors.onSurfaceVariant,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
   },
   activeMobileTabText: {
@@ -322,4 +436,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-

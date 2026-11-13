@@ -87,16 +87,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.outerCanvas}>
       <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-        {/* Mobile top bar (mobile native / narrow screen) */}
-        {!isDesktop && <TopAppBar title="Libérate" />}
-
-        {/* Web Header for desktop / web browser */}
-        {isWeb && (
+        {isWeb ? (
           <WebHeader
             activeScreen="Home"
             onNavigate={(screen) => navigation.navigate(screen)}
             onNavigateSection={handleNavigateSection}
           />
+        ) : (
+          <TopAppBar title="Libérate" />
         )}
 
         <ScrollView
@@ -185,7 +183,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           {/* Sección: Testimonios (Carrusel / Grid Responsivo) */}
           <NewsCarousel items={testimonials} />
 
-          {/* Sección: Colaboradores e Instituciones (UNAM, IPN, LABPSIIT + PAPIME) */}
+          {/* Sección: Colaboradores e Instituciones (UNAM, IPN, LABPSIIT + Proyecto TT-A128) */}
           <View
             onLayout={(event) => {
               const { y } = event.nativeEvent.layout;

@@ -20,6 +20,7 @@ public class UserResponse {
     private String estadoCuenta;
     private boolean evaluacionInicialCompletada;
     private Integer edad;
+    private String emailTutor;
     private Instant createdAt;
 
     public UserResponse() {}
@@ -35,6 +36,7 @@ public class UserResponse {
         dto.setEstadoCuenta(user.getEstadoCuenta());
         dto.setEvaluacionInicialCompletada(user.isEvaluacionInicialCompletada());
         dto.setEdad(user.getEdad());
+        dto.setEmailTutor(user.getEmailTutor());
         dto.setCreatedAt(user.getCreatedAt());
         if (user.getIdentities() != null) {
             dto.setProviders(user.getIdentities().stream()
@@ -122,6 +124,14 @@ public class UserResponse {
 
     public void setEdad(Integer edad) {
         this.edad = edad;
+    }
+
+    public String getEmailTutor() {
+        return emailTutor;
+    }
+
+    public void setEmailTutor(String emailTutor) {
+        this.emailTutor = emailTutor;
     }
 
     public Instant getCreatedAt() {

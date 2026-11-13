@@ -16,6 +16,7 @@ import { Footer } from '../components/layout/Footer';
 import { SegmentedControl } from '../components/modules/SegmentedControl';
 import { ProfileSelector } from '../components/modules/ProfileSelector';
 import { FloatingInput } from '../components/common/FloatingInput';
+import { BirthDatePicker } from '../components/common/BirthDatePicker';
 import { GradientButton } from '../components/common/GradientButton';
 import { GoogleSignInButton } from '../components/common/GoogleSignInButton';
 import { useAuth } from '../context/AuthContext';
@@ -36,7 +37,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [age, setAge] = useState('15');
+  const [birthDate, setBirthDate] = useState(`${new Date().getFullYear() - 15}-06-15`);
+  const [age, setAge] = useState<number>(15);
+  const [emailTutor, setEmailTutor] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -44,6 +47,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     name?: string;
     email?: string;
     age?: string;
+    emailTutor?: string;
     password?: string;
     confirmPassword?: string;
   }>({});
@@ -59,9 +63,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       errors.email = 'Formato de correo inválido';
     }
     if (selectedRole === 'ADOLESCENTES') {
-      const numAge = parseInt(age, 10);
-      if (isNaN(numAge) || numAge < 12 || numAge > 17) {
-        errors.age = 'El protocolo para adolescentes es de 12 a 17 años';
+      if (!birthDate || isNaN(age) || age < 12 || age > 17) {
+        errors.age = 'Selecciona tu fecha de nacimiento (protocolo para 12 a 17 años)';
+      }
+      if (!emailTutor.trim() || !emailTutor.includes('@')) {
+        errors.emailTutor = 'Ingresa el correo electrónico de tu madre, padre o tutor legal';
+      } else if (emailTutor.trim().toLowerCase() === email.trim().toLowerCase()) {
+        errors.emailTutor = 'El correo de tu tutor debe ser distinto al tuyo';
       }
     }
     if (!password) {
@@ -80,7 +88,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     clearError();
     if (!validate()) return;
 
-    const numAge = parseInt(age, 10);
+    const numAge = age;
     const isAdolescent = selectedRole === 'ADOLESCENTES' && !isNaN(numAge) && numAge < 18;
 
     const success = await register({
@@ -89,7 +97,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       email: email.trim(),
       password,
       role: selectedRole,
-      edad: !isNaN(numAge) ? numAge : undefined,
+      edad: isAdolescent ? numAge : undefined,
+      emailTutor: isAdolescent && emailTutor.trim() ? emailTutor.trim().toLowerCase() : undefined,
     });
 
     if (success) {
@@ -97,7 +106,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
         navigation.navigate('AdolescentBlocked', {
           nombre: name.trim(),
           edad: numAge,
+          fechaNacimiento: birthDate,
           email: email.trim(),
+          emailTutor: emailTutor.trim().toLowerCase(),
         });
       } else {
         navigation.navigate('VerifyEmail', { email: email.trim() });
@@ -125,15 +136,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   return (
     <View style={styles.outerCanvas}>
       <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-        {/* Mobile top bar (mobile native / narrow screen) */}
-        {!isDesktop && <TopAppBar title="Libérate" />}
-
-        {/* Web Header for desktop / web browser */}
-        {isWeb && (
+        {isWeb ? (
           <WebHeader
             activeScreen="Register"
             onNavigate={(screen) => navigation.navigate(screen)}
           />
+        ) : (
+          <TopAppBar title="Libérate" />
         )}
 
         <ScrollView
@@ -189,24 +198,40 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
                   if (formErrors.name) setFormErrors({ ...formErrors, name: undefined });
                 }}
                 autoCapitalize="words"
-                placeholder="Ej. Camila Silva"
+                placeholder={selectedRole === 'FAMILIAS' ? '' : 'Ej. Camila Silva'}
                 error={formErrors.name}
               />
 
               {selectedRole === 'ADOLESCENTES' && (
-                <FloatingInput
-                  label="Edad (12 a 17 años)"
-                  value={age}
-                  onChangeText={(t: string) => {
-                    setAge(t);
-                    if (formErrors.age) setFormErrors({ ...formErrors, age: undefined });
-                  }}
-                  keyboardType="numeric"
-                  maxLength={2}
-                  placeholder="Ej. 15"
-                  error={formErrors.age}
-                  hint="Los menores de 18 años requieren autorización y consentimiento de su tutor."
-                />
+                <>
+                  <BirthDatePicker
+                    label="Fecha de nacimiento (12 a 17 años)"
+                    value={birthDate}
+                    minAge={12}
+                    maxAge={17}
+                    onChange={(dateStr, calcAge) => {
+                      setBirthDate(dateStr);
+                      setAge(calcAge);
+                      if (formErrors.age) setFormErrors({ ...formErrors, age: undefined });
+                    }}
+                    error={formErrors.age}
+                    hint="Selecciona tu fecha en el calendario; la edad se calcula automáticamente."
+                  />
+
+                  <FloatingInput
+                    label="Correo electrónico de tu madre, padre o tutor legal"
+                    value={emailTutor}
+                    onChangeText={(t) => {
+                      setEmailTutor(t);
+                      if (formErrors.emailTutor)
+                        setFormErrors({ ...formErrors, emailTutor: undefined });
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    error={formErrors.emailTutor}
+                    hint="Se vinculará a tu cuenta para el consentimiento informado y acompañamiento."
+                  />
+                </>
               )}
 
               <FloatingInput
@@ -218,7 +243,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                placeholder="ejemplo@correo.com"
+                placeholder={selectedRole === 'FAMILIAS' ? '' : 'ejemplo@correo.com'}
                 error={formErrors.email}
               />
 

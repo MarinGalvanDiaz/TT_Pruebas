@@ -1,4 +1,35 @@
-export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/+$/, '');
+import { Platform } from 'react-native';
+
+const PRODUCTION_API_URL = 'https://liberate.luminar.top/api';
+
+function resolveApiBaseUrl(): string {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+  if (Platform.OS !== 'web') {
+    // En la app móvil nativa (APK Android / iOS), las rutas relativas como '/api' no tienen host,
+    // por lo que conectamos directamente al dominio público de producción https://liberate.luminar.top/api
+    if (envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://'))) {
+      return envUrl.replace(/\/+$/, '');
+    }
+    return PRODUCTION_API_URL;
+  }
+
+  // En Web: si se definió EXPO_PUBLIC_API_URL (ej. '/api' en Docker Nginx), se usa directamente
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    const { hostname, port } = window.location;
+    if ((hostname === 'localhost' || hostname === '127.0.0.1') && (port === '19006' || port === '3000')) {
+      return 'http://localhost:8080/api';
+    }
+  }
+
+  return '/api';
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const Endpoints = {
   auth: {
@@ -46,7 +77,8 @@ export const Endpoints = {
   questionnaires: {
     initial: `${API_BASE_URL}/questionnaires/initial`,
     status: `${API_BASE_URL}/questionnaires/status`,
+    progress: `${API_BASE_URL}/questionnaires/progress`,
+    saveProgress: `${API_BASE_URL}/questionnaires/initial/progress`,
     submit: `${API_BASE_URL}/questionnaires/initial/submit`,
   },
 } as const;
-

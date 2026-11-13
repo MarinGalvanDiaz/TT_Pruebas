@@ -14,7 +14,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { FloatingInput } from '../../components/common/FloatingInput';
+import { BirthDatePicker } from '../../components/common/BirthDatePicker';
 import { GradientButton } from '../../components/common/GradientButton';
 import EmergencyDirectoryModal from '../../components/modules/EmergencyDirectoryModal';
 import { TutorService } from '../../services/tutor.service';
@@ -22,14 +25,19 @@ import { TutorService } from '../../services/tutor.service';
 export default function AdolescentBlockedScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const isWeb = Platform.OS === 'web';
 
   const initialName = route.params?.nombre || '';
-  const initialAge = route.params?.edad ? String(route.params.edad) : '15';
+  const initialAge = route.params?.edad ? Number(route.params.edad) : 15;
+  const initialBirthDate =
+    route.params?.fechaNacimiento || `${new Date().getFullYear() - initialAge}-06-15`;
   const initialEmail = route.params?.email || '';
+  const initialTutorEmail = route.params?.emailTutor || '';
 
   const [nombre, setNombre] = useState(initialName);
-  const [edad, setEdad] = useState(initialAge);
-  const [tutorEmail, setTutorEmail] = useState('');
+  const [birthDate, setBirthDate] = useState<string>(initialBirthDate);
+  const [edad, setEdad] = useState<number>(initialAge);
+  const [tutorEmail, setTutorEmail] = useState(initialTutorEmail);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
@@ -42,7 +50,7 @@ export default function AdolescentBlockedScreen() {
       return;
     }
 
-    const ageNum = parseInt(edad, 10);
+    const ageNum = edad;
     if (isNaN(ageNum) || ageNum < 12 || ageNum > 17) {
       setErrorMessage('Este protocolo está dirigido a adolescentes de 12 a 17 años');
       return;
@@ -83,9 +91,14 @@ export default function AdolescentBlockedScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: Colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Autorización de Tutor" />
+      )}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -99,7 +112,7 @@ export default function AdolescentBlockedScreen() {
 
           <Text style={styles.title}>Requerimos autorización de tu tutor</Text>
           <Text style={styles.subtitle}>
-            UNAM · IPN · LABPSIIT • Protocolo PAPIME PE309026
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
           </Text>
 
           <View style={styles.infoBanner}>
@@ -127,15 +140,17 @@ export default function AdolescentBlockedScreen() {
               autoCapitalize="words"
             />
 
-            <FloatingInput
-              label="Tu edad (12 a 17 años)"
-              value={edad}
-              onChangeText={(t: string) => {
-                setEdad(t);
+            <BirthDatePicker
+              label="Tu fecha de nacimiento (12 a 17 años)"
+              value={birthDate}
+              minAge={12}
+              maxAge={17}
+              onChange={(dateStr, calcAge) => {
+                setBirthDate(dateStr);
+                setEdad(calcAge);
                 setErrorMessage(null);
               }}
-              keyboardType="numeric"
-              maxLength={2}
+              hint="Selecciona tu fecha de nacimiento; la edad se calcula automáticamente."
             />
 
             <FloatingInput

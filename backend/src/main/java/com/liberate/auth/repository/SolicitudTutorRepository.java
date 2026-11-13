@@ -11,5 +11,5 @@ public interface SolicitudTutorRepository extends JpaRepository<SolicitudTutor, 
     Optional<SolicitudTutor> findByTokenHash(String tokenHash);
     Optional<SolicitudTutor> findFirstByEmailTutorOrderByCreatedAtDesc(String emailTutor);
     Optional<SolicitudTutor> findFirstByAdolescenteEmailOrderByCreatedAtDesc(String adolescenteEmail);
+    Optional<SolicitudTutor> findFirstByAdolescenteUsuarioIdOrderByCreatedAtDesc(String adolescenteUsuarioId);
 }
-

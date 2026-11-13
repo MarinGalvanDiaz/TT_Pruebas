@@ -12,6 +12,8 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Spacing, BorderRadius } from '../theme/spacing';
+import { TopAppBar } from '../components/layout/TopAppBar';
+import { WebHeader } from '../components/layout/WebHeader';
 import EmergencyDirectoryModal from '../components/modules/EmergencyDirectoryModal';
 
 interface Props {
@@ -30,8 +32,17 @@ export const CriticalAlertScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={[styles.mainWrapper, isWeb && styles.webWrapper]}>
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader
+          activeScreen="CriticalAlert"
+          onNavigate={(screen) => navigation.navigate(screen)}
+        />
+      ) : (
+        <TopAppBar title="Apoyo Prioritario" />
+      )}
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <View style={[styles.mainWrapper, isWeb && styles.webWrapper]}>
         {/* 1. Header de Alerta Crítica */}
         <View style={styles.alertBanner}>
           <View style={styles.badgeRow}>
@@ -153,7 +164,8 @@ export const CriticalAlertScreen: React.FC<Props> = ({ navigation }) => {
         visible={showDirectoryModal}
         onClose={() => setShowDirectoryModal(false)}
       />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 

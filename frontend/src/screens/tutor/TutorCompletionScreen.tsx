@@ -5,12 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import { GradientButton } from '../../components/common/GradientButton';
 
 function maskEmail(email: string): string {
@@ -27,20 +30,28 @@ export default function TutorCompletionScreen() {
   const adolescenteNombre = route.params?.adolescenteNombre || 'el o la adolescente';
   const adolescenteEmail = route.params?.adolescenteEmail || '';
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.card}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="checkmark-done" size={48} color={Colors.tertiary} />
-        </View>
+  const isWeb = Platform.OS === 'web';
 
-        <Text style={styles.title}>¡Terminaste tu parte!</Text>
-        <Text style={styles.subtitle}>
-          UNAM · IPN · LABPSIIT • Protocolo PAPIME PE309026
-        </Text>
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Proceso Finalizado" />
+      )}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.card}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="checkmark-done" size={48} color={Colors.tertiary} />
+          </View>
+
+          <Text style={styles.title}>¡Terminaste tu parte!</Text>
+          <Text style={styles.subtitle}>
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
+          </Text>
 
         <View style={styles.successBanner}>
           <Ionicons name="mail" size={20} color={Colors.tertiary} style={{ marginRight: 8 }} />
@@ -102,7 +113,8 @@ export default function TutorCompletionScreen() {
           />
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

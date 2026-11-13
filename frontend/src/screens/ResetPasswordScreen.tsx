@@ -99,13 +99,13 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({
   return (
     <View style={styles.outerCanvas}>
       <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-        {!isDesktop && <TopAppBar title="Restablecer contraseña" />}
-
-        {isWeb && (
+        {isWeb ? (
           <WebHeader
             activeScreen="Login"
             onNavigate={(screen) => navigation.navigate(screen)}
           />
+        ) : (
+          <TopAppBar title="Restablecer contraseña" />
         )}
 
         <ScrollView

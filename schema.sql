@@ -1,6 +1,6 @@
 -- =============================================================================
 -- BASE DE DATOS: LIBÉRATE (liberatedb)
--- Plataforma de bienestar, apoyo emocional y salud mental
+-- Plataforma de bienestar, apoyo emocional y salud mental (Proyecto TT-A128)
 -- Compatible con: PostgreSQL 14+ / Spring Boot 3.2.x JPA
 -- =============================================================================
 
@@ -42,12 +42,14 @@ CREATE TABLE usuarios (
         CHECK (estado_cuenta IN ('ACTIVA', 'PENDIENTE_DE_TUTOR', 'BLOQUEADA_MENOR')),
     evaluacion_inicial_completada BOOLEAN NOT NULL DEFAULT FALSE,
     edad INTEGER,
+    email_tutor VARCHAR(150),
     avatar_url VARCHAR(500),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE UNIQUE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_usuarios_email_tutor ON usuarios(email_tutor);
 
 -- Tabla de Identidades de Autenticación Federada / Local (OAuth2 Google, Local, etc.)
 CREATE TABLE identidades_auth (
@@ -181,6 +183,8 @@ CREATE TABLE cuestionarios_adolescente (
     derse_f2 INTEGER,
     derse_f3 INTEGER,
     derse_f4 INTEGER,
+    instrumento_actual INTEGER NOT NULL DEFAULT 0,
+    pregunta_actual INTEGER NOT NULL DEFAULT 0,
     estado_evaluacion VARCHAR(50) NOT NULL DEFAULT 'COMPLETADO'
         CHECK (estado_evaluacion IN ('COMPLETADO', 'ALERTA_CRITICA', 'EN_PROGRESO')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -308,4 +312,3 @@ VALUES
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- =============================================================================
-

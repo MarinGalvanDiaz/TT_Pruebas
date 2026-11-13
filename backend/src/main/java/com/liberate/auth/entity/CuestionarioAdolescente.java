@@ -63,8 +63,14 @@ public class CuestionarioAdolescente {
     @Column(name = "derse_f4")
     private Integer derseF4;
 
+    @Column(name = "instrumento_actual", nullable = false)
+    private Integer instrumentoActual = 0;
+
+    @Column(name = "pregunta_actual", nullable = false)
+    private Integer preguntaActual = 0;
+
     @Column(name = "estado_evaluacion", length = 50, nullable = false)
-    private String estadoEvaluacion = "COMPLETADO";
+    private String estadoEvaluacion = "EN_PROGRESO";
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -214,6 +220,22 @@ public class CuestionarioAdolescente {
         this.derseF4 = derseF4;
     }
 
+    public Integer getInstrumentoActual() {
+        return instrumentoActual;
+    }
+
+    public void setInstrumentoActual(Integer instrumentoActual) {
+        this.instrumentoActual = instrumentoActual;
+    }
+
+    public Integer getPreguntaActual() {
+        return preguntaActual;
+    }
+
+    public void setPreguntaActual(Integer preguntaActual) {
+        this.preguntaActual = preguntaActual;
+    }
+
     public String getEstadoEvaluacion() {
         return estadoEvaluacion;
     }
@@ -238,4 +260,3 @@ public class CuestionarioAdolescente {
         this.updatedAt = updatedAt;
     }
 }
-

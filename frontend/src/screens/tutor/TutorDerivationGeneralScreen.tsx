@@ -6,17 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { Spacing } from '../../theme/spacing';
+import { TopAppBar } from '../../components/layout/TopAppBar';
+import { WebHeader } from '../../components/layout/WebHeader';
 import EmergencyDirectoryModal from '../../components/modules/EmergencyDirectoryModal';
 
 export default function TutorDerivationGeneralScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const isWeb = Platform.OS === 'web';
 
   const emailTutor = route.params?.emailTutor || '';
   const [showModal, setShowModal] = useState(false);
@@ -26,19 +30,25 @@ export default function TutorDerivationGeneralScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.card}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="heart-half-outline" size={44} color={Colors.secondary} />
-        </View>
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      {isWeb ? (
+        <WebHeader onNavigate={(screen) => navigation.navigate(screen)} />
+      ) : (
+        <TopAppBar title="Orientación Institucional" />
+      )}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.card}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="heart-half-outline" size={44} color={Colors.secondary} />
+          </View>
 
-        <Text style={styles.title}>Gracias por confiar en nosotros</Text>
-        <Text style={styles.subtitle}>
-          UNAM · IPN · LABPSIIT • Protocolo PAPIME PE309026
-        </Text>
+          <Text style={styles.title}>Gracias por confiar en nosotros</Text>
+          <Text style={styles.subtitle}>
+            UNAM · IPN · LABPSIIT • Proyecto TT-A128
+          </Text>
 
         <View style={styles.messageBox}>
           <Text style={styles.messageText}>
@@ -108,7 +118,8 @@ export default function TutorDerivationGeneralScreen() {
         onClose={() => setShowModal(false)}
         defaultEmail={emailTutor}
       />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

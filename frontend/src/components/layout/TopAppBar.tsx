@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share, Linking, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
 import { Colors } from '../../theme/colors';
 import { Typography } from '../../theme/typography';
 import { BorderRadius } from '../../theme/spacing';
@@ -16,11 +18,20 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   onContactPress,
   onSharePress,
 }) => {
+  const navigation = useNavigation<any>();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  // En Web siempre se utiliza WebHeader (responsivo para escritorio y navegador móvil).
+  // Retornar null en web evita cualquier duplicación de encabezado al redimensionar la pantalla.
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
   const handleContact = () => {
     if (onContactPress) {
       onContactPress();
     } else {
-      Linking.openURL('mailto:contacto@liberate.org?subject=Consulta%20Libérate');
+      Linking.openURL('mailto:soporte@luminar.top?subject=Consulta%20Libérate');
     }
   };
 
@@ -29,49 +40,79 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
       onSharePress();
     } else {
       try {
-        if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.share) {
-          await navigator.share({
-            title: 'Libérate - Tu espacio seguro',
-            text: 'Descubre Libérate: Tu espacio seguro para sentirte mejor.',
-            url: window.location.href,
-          });
-        } else {
-          await Share.share({
-            message: 'Descubre Libérate: Tu espacio seguro para sentirte mejor. https://liberate.org',
-            title: 'Libérate',
-          });
-        }
-      } catch (err) {
-        console.log('Share action cancelled or unavailable');
+        await Share.share({
+          message: 'Descubre Libérate: Tu espacio seguro para sentirte mejor. https://liberate.luminar.top',
+          title: 'Libérate',
+        });
+      } catch {
+        // Share cancelled
       }
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigation.navigate('Login');
+  };
+
   return (
     <View style={styles.header}>
-      <View style={styles.logoRow}>
+      <TouchableOpacity
+        style={styles.logoRow}
+        onPress={() => navigation.navigate('Home')}
+        activeOpacity={0.8}
+      >
         <View style={styles.brandDot} />
-        <Text style={styles.title}>{title}</Text>
-      </View>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+      </TouchableOpacity>
 
       <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={handleContact}
-          accessibilityLabel="Contacto"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <MaterialIcons name="mail-outline" size={22} color={Colors.onSurface} />
-        </TouchableOpacity>
+        {isAuthenticated ? (
+          <>
+            <TouchableOpacity
+              style={styles.profilePill}
+              onPress={() => navigation.navigate('SessionProfile')}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="account-circle" size={16} color={Colors.primary} />
+              <Text style={styles.profilePillText} numberOfLines={1}>
+                {user?.name?.split(' ')[0] || 'Sesión'}
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={handleShare}
-          accessibilityLabel="Compartir"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <MaterialIcons name="share" size={20} color={Colors.onSurface} />
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.logoutPill}
+              onPress={handleLogout}
+              accessibilityLabel="Cerrar sesión"
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="logout" size={15} color="#e11d48" />
+              <Text style={styles.logoutPillText}>Salir</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={handleContact}
+              accessibilityLabel="Contacto"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialIcons name="mail-outline" size={20} color={Colors.onSurface} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={handleShare}
+              accessibilityLabel="Compartir"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialIcons name="share" size={19} color={Colors.onSurface} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );
@@ -84,7 +125,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     width: '100%',
     borderBottomWidth: 1,
     borderBottomColor: Colors.surfaceVariant,
@@ -94,6 +135,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 1,
   },
   brandDot: {
     width: 16,
@@ -105,7 +147,7 @@ const styles = StyleSheet.create({
     ...Typography.headlineMd,
     color: Colors.onSurface,
     fontWeight: '800',
-    fontSize: 18,
+    fontSize: 17,
     letterSpacing: -0.3,
   },
   actionsRow: {
@@ -118,5 +160,35 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.surfaceContainerLow,
   },
+  profilePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primaryContainer,
+    maxWidth: 120,
+  },
+  profilePillText: {
+    ...Typography.labelSmBold,
+    color: Colors.primary,
+    fontSize: 12,
+  },
+  logoutPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    backgroundColor: '#fff1f2',
+  },
+  logoutPillText: {
+    ...Typography.labelSmBold,
+    color: '#e11d48',
+    fontSize: 12,
+  },
 });
-
